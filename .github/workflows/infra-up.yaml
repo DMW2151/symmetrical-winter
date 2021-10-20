@@ -33,11 +33,11 @@ jobs:
           tf_actions_working_dir: ${{ env.tf_working_dir }}
 
       - name: Terraform Format - Modules
-          uses: hashicorp/terraform-github-actions@master
-          with:
-            tf_actions_version: ${{ env.tf_version }}
-            tf_actions_subcommand: 'fmt'
-            tf_actions_working_dir: ${{ env.tf_modules_dir }}
+        uses: hashicorp/terraform-github-actions@master
+        with:
+          tf_actions_version: ${{ env.tf_version }}
+          tf_actions_subcommand: 'fmt'
+          tf_actions_working_dir: ${{ env.tf_modules_dir }}
 
       - name: Terraform Validate - All
         uses: hashicorp/terraform-github-actions@master
