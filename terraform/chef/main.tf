@@ -9,7 +9,7 @@ terraform {
   backend "s3" {
     bucket = "dmw2151-chef"
     key    = "state_files/chef-stack.tfstate"
-    region = "us-east-1" 
+    region = "us-east-1"
   }
 
   required_providers {
