@@ -23,9 +23,17 @@ jobs:
           sudo apt-get update &&\
           sudo apt-get install -y jq awscli
       
-      - name: Pip Install AWS CLI
+      - name: Install AWS CLI
         run: |
-          sudo python -m pip install awscli
+          sudo pip install awscli --force-reinstall --upgrade
+
+      - name: Create AWS Named Profile
+        run: |
+          aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }} \
+            --profile default
+          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }} \
+            --profile default
+          aws configure set region us-east-1 --profile default
 
       - name: Terraform Init
         uses: hashicorp/terraform-github-actions@master
@@ -59,9 +67,9 @@ jobs:
           tf_actions_subcommand: 'validate'
           tf_actions_working_dir: ${{ env.tf_working_dir }}
         env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-            AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-            AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
       - name: Terraform Apply - All
         uses: hashicorp/terraform-github-actions@master
@@ -70,9 +78,9 @@ jobs:
           tf_actions_subcommand: 'apply'
           tf_actions_working_dir: ${{ env.tf_working_dir }}
         env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-            AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-            AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
   update-chef-nodes:
 
