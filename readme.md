@@ -1,6 +1,6 @@
 # About
 
-This project is a submission into the 2021 Chef Automate for Good Hackathon. [JupyterHub](https://jupyter.org/hub) is a Python runs in the cloud or on your own hardware, and makes it possible to serve a pre-configured data science environment to any user in the world. It is customizable and scalable, and is suitable for small and large teams, academic courses, and large-scale infrastructure.
+This project is a submission into the 2021 Chef Automate for Good Hackathon. [JupyterHub](https://jupyter.org/hub) is a Python application that runs in the cloud or on your own hardware, and makes it possible to serve a pre-configured data science environment to any user in the world. It is customizable and scalable, and is suitable for small and large teams, academic courses, and large-scale infrastructure.
 
 However, JupyterHub traditionally depends on one of two configurations. Either a vertically-scaled single node deployment (ironically named, "the little jupyterhub") or a Kubernetes deployment. For many users, especially in education, both a single node or K8s deployment may be impractical. Consider a lab session with 60+ students on a single node instance, the instance would be deeply underutilized for all but a few hours a week (or unable to meet demand during the lab sessions with many concurrent users). K8s presents a viable alternative using a cluster autoscaler, but I propose a simpler alternative solution.
 
@@ -21,7 +21,12 @@ Please see the following links for more detail on the project:
 
 ## Requires In Github
 
-The CI for this deployment requires the following secrets attached to 
+The CI for this deployment requires the following secrets attached to your repo
+
+- AWS_ACCESS_KEY_ID
+- 
+
+
 
 ## Assumptions, Errata, Notes
 

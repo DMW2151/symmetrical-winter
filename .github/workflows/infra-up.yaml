@@ -24,6 +24,10 @@ jobs:
           tf_actions_version: ${{ env.tf_version }}
           tf_actions_subcommand: 'init'
           tf_actions_working_dir: ${{ env.tf_working_dir }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
       - name: Terraform Format - Main
         uses: hashicorp/terraform-github-actions@master
@@ -31,7 +35,7 @@ jobs:
           tf_actions_version: ${{ env.tf_version }}
           tf_actions_subcommand: 'fmt'
           tf_actions_working_dir: ${{ env.tf_working_dir }}
-
+        
       - name: Terraform Format - Modules
         uses: hashicorp/terraform-github-actions@master
         with:
@@ -45,6 +49,10 @@ jobs:
           tf_actions_version: ${{ env.tf_version }}
           tf_actions_subcommand: 'validate'
           tf_actions_working_dir: ${{ env.tf_working_dir }}
+        env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
       - name: Terraform Apply - All
         uses: hashicorp/terraform-github-actions@master
@@ -53,8 +61,9 @@ jobs:
           tf_actions_subcommand: 'apply'
           tf_actions_working_dir: ${{ env.tf_working_dir }}
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
   update-chef-nodes:
 
@@ -78,7 +87,7 @@ jobs:
 
       - name: Fetch WorkStation IPV4
         run: |
-          echo "CHEF__WORKSTATION_HOST=$(terraform output workstation_ip)" >> $GITHUB_ENV 
+          echo "CHEF__WORKSTATION_HOST=$(terraform output -raw  workstation_ip)" >> $GITHUB_ENV 
 
       - name: Copy Cookbook to WorkStation
         uses: appleboy/scp-action@master
