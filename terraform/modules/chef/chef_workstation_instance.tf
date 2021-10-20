@@ -28,10 +28,18 @@ resource "null_resource" "wait_for_workstation_init" {
     command     = <<-EOF
     set -x -Ee -o pipefail;
 
+    export AWS_DEFAULT_REGION=${var.default_region}
+
     sudo apt-get update &&\
     sudo apt-get install -y jq awscli
 
-    export AWS_DEFAULT_REGION=${var.default_region}
+    aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }} \
+        --profile default
+
+    aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }} \
+      --profile default
+
+    aws configure set region $AWS_DEFAULT_REGION --profile default
     
     command_id=`(aws ssm send-command --document-name ${aws_ssm_document.cloud_init_wait.arn} --instance-ids ${aws_instance.chef-workstation.id} --output text --query "Command.CommandId")`
     
