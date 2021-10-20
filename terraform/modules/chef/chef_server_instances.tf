@@ -18,6 +18,10 @@ resource "null_resource" "wait_for_chef_init" {
 
     command = <<-EOF
     set -x -Ee -o pipefail;
+
+    sudo apt-get update &&\
+    sudo apt-get install -y jq awscli
+
     export AWS_DEFAULT_REGION=${var.default_region}
     
     export command_id=`(aws ssm send-command --document-name ${aws_ssm_document.cloud_init_wait.arn} --instance-ids ${aws_instance.chef-server.id} --output text --query "Command.CommandId")`
