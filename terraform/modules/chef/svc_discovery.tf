@@ -2,7 +2,7 @@
 resource "aws_service_discovery_private_dns_namespace" "chef" {
   name        = "chef.local"
   description = "chef service - includes main server"
-  vpc         = aws_vpc.infra-vpc
+  vpc         = aws_vpc.infra-vpc.id
 }
 
 # Resource: https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/service_discovery_service
@@ -31,6 +31,6 @@ resource "aws_service_discovery_instance" "chef_svc_master" {
   service_id  = aws_service_discovery_service.chef_svc.id
 
   attributes = {
-    AWS_EC2_INSTANCE_ID = aws_instance.chef-server.id
+    AWS_INSTANCE_IPV4 = aws_instance.chef-server.private_ip
   }
 }

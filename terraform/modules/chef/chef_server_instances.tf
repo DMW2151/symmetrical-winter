@@ -26,8 +26,8 @@ resource "null_resource" "wait_for_chef_init" {
     # Hamfisted and Inelegant - AFAIK `aws ssm wait command-executed` polls on a
     # fixed interval of 5s for 20x; no way to extend beyond 100s interval
     
-    # From experience...that chef server init takes 5+ min always, give up to 100 * 6 == 10 min to init!
-    for i in {0..5}
+    # From experience...that chef server init takes 5+ min always, give up to 100 * 10 == 20 min to init!
+    for i in {0..10}
     do
       if ! aws ssm wait command-executed --command-id $command_id --instance-id ${aws_instance.chef-server.id}; then
         echo "SSM Call #$i - Still Waiting on Chef Init"
@@ -51,6 +51,8 @@ resource "null_resource" "wait_for_chef_init" {
         --instance-id ${aws_instance.chef-server.id} \
         --query StandardErrorContent
       
+      # Kill the Instance If UserData Can't Get Brought Up - Keeps tf state Clean
+      aws ec2 terminate-instances --instance-ids ${aws_instance.chef-server.id}
       exit 1;
     fi;
 

@@ -1,6 +1,11 @@
 
 # EC2 Instance that hosts the Chef Server
 
+# Resource: https://registry.terraform.io/providers/hashicorp/template/latest/docs/data-sources/file
+data "template_file" "hub-leader-userdata" {
+  template = filebase64("./../modules/chef/user_data/hubserver_userdata.sh")
+}
+
 # Need an instance that can be used as the Chef Server
 # Resource: https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/instance
 resource "aws_instance" "hub-leader" {
@@ -22,7 +27,8 @@ resource "aws_instance" "hub-leader" {
   vpc_security_group_ids = [
     aws_security_group.allow_vpc_traffic_sg.id,
     aws_security_group.allow_deployer_sg.id,
-    aws_security_group.allow_deployer_http_sg.id
+    aws_security_group.allow_deployer_http_sg.id,
+    aws_security_group.allow_all_http_sg.id
   ]
 
   # Storage
@@ -38,7 +44,7 @@ resource "aws_instance" "hub-leader" {
 
   # User Data
   # See `build_chef_server.sh` for details, builds a Chef Server for Ubuntu 20.04 w. all deps 
-  user_data            = data.template_file.worker-userdata.rendered
+  user_data            = data.template_file.hub-leader-userdata.rendered
   iam_instance_profile = aws_iam_instance_profile.chef_server_profile.name
 
   # Monitoring & Metadata Mgmt - [NOTE]: These are default options; Added for clarity
@@ -48,7 +54,8 @@ resource "aws_instance" "hub-leader" {
   }
 
   depends_on = [
-    null_resource.wait_for_workstation_init
+    null_resource.wait_for_workstation_init,
+    aws_instance.chef-workstation
   ]
 
   # Tags

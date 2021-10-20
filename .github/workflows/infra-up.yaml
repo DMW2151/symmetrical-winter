@@ -1,0 +1,105 @@
+name: Apply Terraform
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+
+  terraform-apply-chef-infra:
+
+    runs-on: ubuntu-latest 
+    env:
+      tf_version: '1.0.3'
+      tf_working_dir: ./terraform/chef/
+      tf_modules_dir: ./terraform/modules/**
+
+    steps:
+      
+      - uses: actions/checkout@v2
+        
+      - name: Terraform Init
+        uses: hashicorp/terraform-github-actions@master
+        with:
+          tf_actions_version: ${{ env.tf_version }}
+          tf_actions_subcommand: 'init'
+          tf_actions_working_dir: ${{ env.tf_working_dir }}
+
+      - name: Terraform Format - Main
+        uses: hashicorp/terraform-github-actions@master
+        with:
+          tf_actions_version: ${{ env.tf_version }}
+          tf_actions_subcommand: 'fmt'
+          tf_actions_working_dir: ${{ env.tf_working_dir }}
+
+      - name: Terraform Format - Modules
+          uses: hashicorp/terraform-github-actions@master
+          with:
+            tf_actions_version: ${{ env.tf_version }}
+            tf_actions_subcommand: 'fmt'
+            tf_actions_working_dir: ${{ env.tf_modules_dir }}
+
+      - name: Terraform Validate - All
+        uses: hashicorp/terraform-github-actions@master
+        with:
+          tf_actions_version: ${{ env.tf_version }}
+          tf_actions_subcommand: 'validate'
+          tf_actions_working_dir: ${{ env.tf_working_dir }}
+
+      - name: Terraform Apply - All
+        uses: hashicorp/terraform-github-actions@master
+        with:
+          tf_actions_version: ${{ env.tf_version }}
+          tf_actions_subcommand: 'apply'
+          tf_actions_working_dir: ${{ env.tf_working_dir }}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+  update-chef-nodes:
+
+    runs-on: ubuntu-latest
+    needs: 
+      - terraform-apply-chef-infra
+    env:
+      chef_username: 'dmw2151'
+      tf_version: '1.0.3'
+      tf_working_dir: ./terraform/chef/
+    
+    steps:
+      - uses: actions/checkout@v2
+  
+      - name: Terraform Init
+        uses: hashicorp/terraform-github-actions@master
+        with:
+          tf_actions_version: ${{ env.tf_version }}
+          tf_actions_subcommand: 'init'
+          tf_actions_working_dir: ${{ env.tf_working_dir }}
+
+      - name: Fetch WorkStation IPV4
+        run: |
+          echo "CHEF__WORKSTATION_HOST=$(terraform output workstation_ip)" >> $GITHUB_ENV 
+
+      - name: Copy Cookbook to WorkStation
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ env.CHEF__WORKSTATION_HOST }}
+          username: "ubuntu"
+          port: 22
+          key: ${{ secrets.CHEF__WORKSTATION_SSH_KEY }}
+          source: "./chef-repo/cookbooks/jupyter/"
+          target: "~/chef-repo/cookbooks/"
+      
+      - name: Update Client Nodes
+        uses: appleboy/ssh-action@master
+        env:
+          CHEF__USER_NAME: ${{ env.chef_username }} 
+        with:
+          host: ${{ env.CHEF__WORKSTATION_HOST }}
+          username: "ubuntu"
+          key: ${{ secrets.CHEF__WORKSTATION_SSH_KEY }}
+          port: 22
+          envs: CHEF__USER_NAME
+          script: |
+            ./scripts/workstation_to_infra_push.sh
+        

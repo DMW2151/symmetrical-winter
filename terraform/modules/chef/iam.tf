@@ -27,6 +27,7 @@ resource "aws_iam_policy" "ssm_rw" {
         "Effect" : "Allow",
         "Action" : [
           "ssm:CreateDocument",
+          "ssm:PutParameter",
           "ssm:DeleteDocument",
           "ssm:DescribeDocument",
           "ssm:DescribeDocumentParameters",

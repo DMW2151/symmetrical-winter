@@ -16,3 +16,8 @@ resource "aws_ssm_parameter" "chef_server_dns" {
   value = aws_instance.chef-server.private_dns
 }
 
+resource "aws_ssm_parameter" "nfs_mount_ip" {
+  name  = "nfs_mount_ip"
+  type  = "String"
+  value = aws_efs_mount_target.core_mnt_target.ip_address
+}

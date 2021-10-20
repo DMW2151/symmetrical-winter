@@ -21,3 +21,7 @@ resource "aws_ssm_document" "cloud_init_wait" {
     DOC
 }
 
+
+
+
+

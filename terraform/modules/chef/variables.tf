@@ -15,7 +15,6 @@ variable "default_region" {
   type        = string
 }
 
-
 variable "default_availability_zone" {
   description = "Default AWS Availability Zone, must be within `default_region`, e.g. `us-east-1` and `us-east-1f`"
   type        = string
@@ -26,3 +25,7 @@ variable "secondary_availability_zone" {
   type        = string
 }
 
+variable "target_domain" {
+  description = "Target domain for Jupyter Hub"
+  type        = string
+}

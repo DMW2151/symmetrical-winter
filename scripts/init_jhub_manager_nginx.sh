@@ -2,9 +2,9 @@
 
 sudo apt update &&\
 sudo apt install -y \
-    nginx
-
-sudo docker pull linuxserver/letsencrypt:latest
+    nginx \
+    docker \
+    docker.io 
 
 docker volume create --driver local nginx_volume
 
@@ -59,7 +59,6 @@ EOF
 sudo docker run \
   --name nginx \
   --network host \
-  --constraint 'node.role == manager' \
   --mount type=bind,src=/etc/nginx/nginx.conf,dst=/config/nginx/site-confs/default \
   --cap-add=NET_ADMIN \
   -e EMAIL=dmw2151@columbia.edu \

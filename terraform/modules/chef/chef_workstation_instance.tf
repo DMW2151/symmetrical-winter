@@ -25,38 +25,39 @@ resource "null_resource" "wait_for_workstation_init" {
 
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
-    command = <<-EOF
+    command     = <<-EOF
     set -x -Ee -o pipefail;
     export AWS_DEFAULT_REGION=${var.default_region}
     
-    export command_id=`(aws ssm send-command --document-name ${aws_ssm_document.cloud_init_wait.arn} --instance-ids ${aws_instance.chef-workstation.id} --output text --query "Command.CommandId")`
+    command_id=`(aws ssm send-command --document-name ${aws_ssm_document.cloud_init_wait.arn} --instance-ids ${aws_instance.chef-workstation.id} --output text --query "Command.CommandId")`
     
-    # From experience...that chef server init takes 5+ min always, give up to 100 * 6 == 10 min to init!
     for i in {0..5}
     do
-      if ! aws ssm wait command-executed --command-id $command_id --instance-id ${aws_instance.chef-server.id}; then
-        echo "SSM Call #$i - Still Waiting on Chef Init"
+      if ! aws ssm wait command-executed --command-id $command_id --instance-id ${aws_instance.chef-workstation.id}; then
+        echo "SSM Call #$i - Still Waiting on Workstation Init"
         aws ssm get-command-invocation \
           --command-id $command_id \
-          --instance-id ${aws_instance.chef-server.id} \
+          --instance-id ${aws_instance.chef-workstation.id} \
           --query StandardOutputContent
       fi;
     done
 
     # Last Attempt!
-    if ! aws ssm wait command-executed --command-id $command_id --instance-id ${aws_instance.chef-server.id}; then
+    if ! aws ssm wait command-executed --command-id $command_id --instance-id ${aws_instance.chef-workstation.id}; then
 
       aws ssm get-command-invocation \
         --command-id $command_id \
-        --instance-id ${aws_instance.chef-server.id} \
+        --instance-id ${aws_instance.chef-workstation.id} \
         --query StandardOutputContent
       
       aws ssm get-command-invocation \
         --command-id $command_id \
-        --instance-id ${aws_instance.chef-server.id} \
+        --instance-id ${aws_instance.chef-workstation.id} \
         --query StandardErrorContent
       
-      exit 1;
+      # Kill the Instance If UserData Can't Get Brought Up - Keeps tf state Clean
+      aws ec2 terminate-instances --instance-ids ${aws_instance.chef-workstation.id}
+      exit 1
     fi;
 
     EOF
@@ -64,12 +65,13 @@ resource "null_resource" "wait_for_workstation_init" {
 
   # Instance MUST show as available; w.o wait get pending instance errors!
   depends_on = [
+    aws_instance.chef-workstation,
     time_sleep.wait_30_seconds_workstation
   ]
 
   # Pre-emptive commands => On Instance ID Change
   triggers = {
-    cluster_instance_ids = aws_instance.chef-server.id
+    cluster_instance_ids = aws_instance.chef-workstation.id
   }
 
 }
@@ -99,14 +101,11 @@ resource "aws_instance" "chef-workstation" {
     aws_security_group.allow_all_http_sg.id
   ]
 
-  # Storage - NO ADDITIONAL STORAGE NEEDED
-
   # User Data - See `build_chef_server.sh` for details
   user_data            = data.template_file.workstation-userdata.rendered
   iam_instance_profile = aws_iam_instance_profile.chef_server_profile.name
 
-  # Monitoring & Metadata Mgmt
-  # [NOTE]: These are default options; Added for clarity
+  # Monitoring & Metadata Mgmt - [NOTE]: These are default options; Added for clarity
   monitoring = true
   metadata_options {
     http_endpoint = "enabled"

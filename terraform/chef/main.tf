@@ -1,12 +1,15 @@
 # Deploy a Chef Infra Server onto AWS w. Terraform following the recommendations given here:
 #   - https://docs.chef.io/server/install_server/
 
+# Change `bucket`, `region`, `profile` as needed, note that module expects `${ADMIN_USERNAME}-chef` as a bucket
+# for initializing the containers!
+
 terraform {
 
   backend "s3" {
-    bucket = "dmw2151-chef" # [PREREQ]: Requires that this Bucket Already Exists...
+    bucket = "dmw2151-chef"
     key    = "state_files/chef-stack.tfstate"
-    region = "us-east-1"
+    region = "us-east-1" 
   }
 
   required_providers {
@@ -15,12 +18,10 @@ terraform {
       version = "~> 3.61.0"
     }
   }
-
   required_version = ">= 1.0.3"
 
 }
 
-# [TODO] Replace Hard Coded Values with Variables...
 provider "aws" {
   region  = "us-east-1"
   profile = "dmw2151"
@@ -40,4 +41,10 @@ module "chef" {
   default_region              = "us-east-1"
   default_availability_zone   = "us-east-1f"
   secondary_availability_zone = "us-east-1d"
+  target_domain               = "maphub.dev"
 }
+
+output "workstation_ip" {
+  value = module.chef.chef-workstation-ip
+}
+

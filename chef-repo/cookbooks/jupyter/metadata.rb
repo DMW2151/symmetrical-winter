@@ -1,9 +1,9 @@
 name 'jupyter'
-maintainer 'The Authors'
-maintainer_email 'you@example.com'
+maintainer 'Dustin Wilson'
+maintainer_email 'dmw2151@columbia.com'
 license 'All Rights Reserved'
-description 'Installs/Configures jupyter'
-long_description 'Installs/Configures jupyter'
+description 'Installs/Configures JupyterHub on Docker Swarm'
+long_description 'Installs/Configures JupyterHub on Docker Swarm'
 version '0.1.0'
 chef_version '>= 13.0'
 
