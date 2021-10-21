@@ -178,8 +178,8 @@ jobs:
           envs: CHEF__USER_NAME
           script: |
             set -x;
-            knife ssh 'role:worker' 'sudo chef-client' --ssh-user ubuntu --user $CHEF__USER_NAME &&\
-            knife ssh 'role:server' 'sudo chef-client' --ssh-user ubuntu --user $CHEF__USER_NAME
+            knife ssh 'role:worker' 'sudo chef-client' --ssh-user ubuntu --user $CHEF__USER_NAME --config /home/ubuntu/.chef/knife.rb &&\
+            knife ssh 'role:server' 'sudo chef-client' --ssh-user ubuntu --user $CHEF__USER_NAME --config /home/ubuntu/.chef/knife.rb
       
       - name: Remove Github Actions IP from Security Group
         run: |
