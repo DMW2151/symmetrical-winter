@@ -25,7 +25,7 @@ resource "null_resource" "wait_for_workstation_init" {
 
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
-    command = <<-EOF
+    command     = <<-EOF
     set -x -Ee -o pipefail;
 
     echo `(cat /etc/*-release)`
