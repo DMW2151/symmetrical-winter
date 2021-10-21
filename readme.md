@@ -23,7 +23,7 @@ Please see the following links for more detail on the project:
 
 The CI for this deployment requires the following secrets attached to your repo
 
-- AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY
+- AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY/CHEF__WORKSTATION_SSH_KEY
 
 
 - Not Highly Available - Push sinks you!
