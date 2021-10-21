@@ -179,7 +179,7 @@ jobs:
       - name: Run Client on Server Nodes
         run: |
           set -x;
-          ssh -A ubuntu@${{ env.CHEF__WORKSTATION_IP }}  knife ssh 'role:worker' 'sudo chef-client' --ssh-user ubuntu --user ${{ env.chef_username }}  --config /home/ubuntu/.chef/knife.rb
+          ssh -A ubuntu@${{ env.CHEF__WORKSTATION_IP }}  knife ssh 'role:server' 'sudo chef-client' --ssh-user ubuntu --user ${{ env.chef_username }}  --config /home/ubuntu/.chef/knife.rb
 
       - name: Remove Actions IP from Security Group
         run: |
