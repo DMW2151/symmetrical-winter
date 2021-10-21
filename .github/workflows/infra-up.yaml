@@ -98,7 +98,7 @@ jobs:
 
       - name: Add Github Actions IP to Security group
         run: |
-          echo ${{ steps.terraform.outputs.tf_actions_output  }} >> /tmp/actions.json
+          ${{ steps.terraform.outputs.tf_actions_output  }} >> /tmp/actions.json
           AWS__SG=`( cat /tmp/actions.json | jq -r '.workstation_ip.value' )`
           aws ec2 authorize-security-group-ingress \
             --group-id $AWS__SG \
@@ -135,7 +135,8 @@ jobs:
 
       - name: Remove Github Actions IP from Security Group
         run: |
-          AWS__SG=`(echo ${{ steps.terraform.outputs.tf_actions_output  }} | jq -r '.workstation_ip.value' )`
+          ${{ steps.terraform.outputs.tf_actions_output  }} >> /tmp/actions.json
+          AWS__SG=`( cat /tmp/actions.json | jq -r '.workstation_ip.value' )`
           aws ec2 revoke-security-group-ingress \
             --group-id $AWS__SG \
             --protocol tcp \
