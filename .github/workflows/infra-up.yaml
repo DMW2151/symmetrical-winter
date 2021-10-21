@@ -17,7 +17,19 @@ jobs:
     steps:
       
       - uses: actions/checkout@v2
-    
+
+      - uses: actions/setup-python@v1
+        with:
+          python-version: 3.9
+       
+      - name: Install AWS CLI
+        run: |
+          sudo python -m pip install awscli
+      
+      - name: Install AWS CLI
+        run: |
+          apt-get update && sudo apt -y upgrade && apt-get install -y jq awscli
+      
       - name: Terraform Init
         uses: hashicorp/terraform-github-actions@master
         with:
