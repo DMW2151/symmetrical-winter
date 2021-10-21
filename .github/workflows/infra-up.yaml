@@ -28,7 +28,7 @@ jobs:
       
       - name: Install AWS CLI
         run: |
-          apt-get update && sudo apt -y upgrade && apt-get install -y jq awscli
+          sudo apt-get update && sudo apt -y upgrade && sudo apt-get install -y jq awscli
       
       - name: Terraform Init
         uses: hashicorp/terraform-github-actions@master
