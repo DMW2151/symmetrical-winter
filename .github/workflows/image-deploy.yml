@@ -17,34 +17,34 @@ jobs:
     
     steps:
 
-    - uses: actions/checkout@v2
-    
-    - uses: actions/setup-python@v1
-        with:
-          python-version: 3.9
-       
-    - name: Install AWS CLI
-      run: |
-        sudo python -m pip install awscli
-    
-    - name: Create AWS Named Profile
-      run: |
-        aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }} \
-          --profile default
-        aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }} \
-          --profile default
-        aws configure set region ${{ env.AWS__DEFAULT_REGION }} --profile default
-
-    - name: Create Repository
-      run: |
-        aws ecr describe-repositories --repository-names jupyterworkspace ||\ 
-        aws ecr create-repository --repository-name jupyterworkspace --image-scanning-configuration scanOnPush=true
+      - uses: actions/checkout@v2
+      
+      - uses: actions/setup-python@v1
+          with:
+            python-version: 3.9
         
-    - uses: whoan/docker-build-with-cache-action@v5
-      with:
-        username: "${{ secrets.AWS_ACCESS_KEY_ID }}"  
-        password: "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
-        registry: "${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com"
-        image_name: ./jupyterhub/workspaces/geospatial
-        image_tag: latest
-        push_image_and_stages: true
+      - name: Install AWS CLI
+        run: |
+          sudo python -m pip install awscli
+      
+      - name: Create AWS Named Profile
+        run: |
+          aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }} \
+            --profile default
+          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }} \
+            --profile default
+          aws configure set region ${{ env.AWS__DEFAULT_REGION }} --profile default
+
+      - name: Create Repository
+        run: |
+          aws ecr describe-repositories --repository-names jupyterworkspace ||\ 
+          aws ecr create-repository --repository-name jupyterworkspace --image-scanning-configuration scanOnPush=true
+          
+      - uses: whoan/docker-build-with-cache-action@v5
+        with:
+          username: "${{ secrets.AWS_ACCESS_KEY_ID }}"  
+          password: "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+          registry: "${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com"
+          image_name: ./jupyterhub/workspaces/geospatial
+          image_tag: latest
+          push_image_and_stages: true
