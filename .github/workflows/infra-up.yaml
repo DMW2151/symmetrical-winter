@@ -79,6 +79,10 @@ jobs:
           tf_actions_version: ${{ env.tf_version }}
           tf_actions_subcommand: 'output'
           tf_actions_working_dir: ${{ env.tf_working_dir }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       
       - name: Get Github action IP
         id: ip
@@ -115,7 +119,7 @@ jobs:
         env:
           CHEF__USER_NAME: ${{ env.chef_username }} 
         with:
-          host: ${{ steps.terraform.outputs.tf_actions_output  }}
+          host: ${{ steps.terraform.outputs.tf_actions_output.workstation_ip.value  }}
           username: "ubuntu"
           key: ${{ secrets.CHEF__WORKSTATION_SSH_KEY }}
           port: 22
