@@ -37,8 +37,7 @@ jobs:
 
       - name: Create Repository
         run: |
-          aws ecr describe-repositories --repository-names jupyterworkspace ||\ 
-          aws ecr create-repository --repository-name jupyterworkspace --image-scanning-configuration scanOnPush=true
+          aws ecr create-repository --repository-name jupyterworkspace --image-scanning-configuration scanOnPush=true || exit 0
           
       - uses: whoan/docker-build-with-cache-action@v5
         with:
