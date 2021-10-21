@@ -9,14 +9,6 @@ data "template_file" "workstation-userdata" {
   ]
 }
 
-# Resource: https://registry.terraform.io/providers/hashicorp/time/latest/docs/resources/sleep
-resource "time_sleep" "wait_60_seconds_workstation" {
-  create_duration = "60s"
-  depends_on = [
-    aws_instance.chef-workstation
-  ]
-}
-
 # [CAREFUL W. PROVISIONERS!] Local Exec => Execute a SSM document From Local Machine
 # which waits for cloud init to finish - blocks ASG from coming up before Workstation
 # or Workstation from coming up before server
@@ -27,6 +19,8 @@ resource "null_resource" "wait_for_workstation_init" {
     interpreter = ["/bin/bash", "-c"]
     command     = <<-EOF
     set -x -Ee -o pipefail;
+
+    sleep 30;
 
     apk update && apk add aws-cli
     
@@ -68,11 +62,6 @@ resource "null_resource" "wait_for_workstation_init" {
 
     EOF
   }
-
-  # Instance MUST show as available; w.o wait get pending instance errors!
-  depends_on = [
-    time_sleep.wait_60_seconds_workstation
-  ]
 
   # Pre-emptive commands => On Instance ID Change
   triggers = {

@@ -1,14 +1,5 @@
 # Configures core EC2 Instance that hosts the Chef Server
 
-# Resource: https://registry.terraform.io/providers/hashicorp/time/latest/docs/resources/sleep
-resource "time_sleep" "wait_60_seconds_server" {
-  create_duration = "60s"
-
-  depends_on = [
-    aws_instance.chef-server
-  ]
-}
-
 resource "null_resource" "wait_for_chef_init" {
 
   # Suggestion: https://rpadovani.com/terraform-cloudinit
@@ -17,6 +8,8 @@ resource "null_resource" "wait_for_chef_init" {
     interpreter = ["/bin/bash", "-c"]
     command     = <<-EOF
     set -x -Ee -o pipefail;
+
+    sleep 30;
 
     apk update && apk add aws-cli
     
@@ -62,10 +55,6 @@ resource "null_resource" "wait_for_chef_init" {
 
     EOF
   }
-
-  depends_on = [
-    time_sleep.wait_60_seconds_server
-  ]
 
   triggers = {
     cluster_instance_ids = aws_instance.chef-server.id
