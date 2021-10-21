@@ -30,8 +30,7 @@ resource "null_resource" "wait_for_workstation_init" {
 
     export AWS_DEFAULT_REGION=${var.default_region}
 
-    sudo apt-get update &&\
-    sudo apt-get install -y jq awscli
+    apt-get update && apt-get install -y jq awscli
 
     command_id=`(aws ssm send-command --document-name ${aws_ssm_document.cloud_init_wait.arn} --instance-ids ${aws_instance.chef-workstation.id} --output text --query "Command.CommandId")`
     
