@@ -92,9 +92,9 @@ jobs:
         run: |
           echo "AWS_DEFAULT_REGION=us-east-1" >> $GITHUB_ENV
       
-      - name: Add Github Actions IP to Security group
+      - name: Install 
         run: |
-          apt-get update -y && apt-get install -y jq 
+          sudo apt-get update -y && sudo apt-get install -y jq 
 
       - name: Add Github Actions IP to Security group
         run: |
