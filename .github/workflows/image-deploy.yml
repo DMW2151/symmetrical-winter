@@ -44,6 +44,7 @@ jobs:
           username: "${{ secrets.AWS_ACCESS_KEY_ID }}"  
           password: "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
           registry: "${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com"
-          image_name: ./jupyterhub/workspaces/geospatial
+          image_name: jupyterworkspace
+          context: ./jupyterhub/workspaces/geospatial
           image_tag: latest
           push_image_and_stages: true
