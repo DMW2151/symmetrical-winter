@@ -17,7 +17,7 @@ resource "null_resource" "wait_for_chef_init" {
     interpreter = ["/bin/sh", "-c"]
 
     command = <<-EOF
-    set -x;
+    set -x -Ee -o pipefail;
 
     export AWS_DEFAULT_REGION=${var.default_region}
 

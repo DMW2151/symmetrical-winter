@@ -24,8 +24,7 @@ resource "time_sleep" "wait_30_seconds_workstation" {
 resource "null_resource" "wait_for_workstation_init" {
 
   provisioner "local-exec" {
-    interpreter = ["/bin/sh", "-c"]
-    command     = <<-EOF
+    command = <<-EOF
     set -x;
 
     export AWS_DEFAULT_REGION=${var.default_region}
