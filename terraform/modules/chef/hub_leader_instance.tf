@@ -35,9 +35,9 @@ resource "aws_instance" "hub-leader" {
   root_block_device {
     volume_type           = "gp3"
     volume_size           = 10
-    delete_on_termination = false
+    delete_on_termination = true
     tags = {
-      Name   = "Chef Server - Root Volume"
+      Name   = "Chef Server - Jupyter Hub - Root Volume"
       Module = "Chef Server - Core Networking"
     }
   }
