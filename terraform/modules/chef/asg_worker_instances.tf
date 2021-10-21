@@ -56,7 +56,8 @@ resource "aws_autoscaling_group" "chef-workers" {
 
   # Security + Networking
   vpc_zone_identifier = [
-    aws_subnet.default_subnet.id
+    aws_subnet.default_subnet.id,
+    #aws_subnet.default_subnet_2.id
   ]
 
   # Deps on Hub...
@@ -94,17 +95,3 @@ resource "aws_autoscaling_policy" "hub-workers-asg-cpu" {
   }
 
 }
-
-# # Resource: https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/autoscaling_lifecycle_hook
-# resource "aws_autoscaling_lifecycle_hook" "deregister_chef_node_hook" {
-
-#   name                   = "deregister_chef_node_hook"
-#   autoscaling_group_name = aws_autoscaling_group.chef-workers.name
-#   default_result         = "CONTINUE"
-#   heartbeat_timeout      = 300
-#   lifecycle_transition   = "autoscaling:EC2_INSTANCE_TERMINATING"
-
-#   # Send message to queue that sends terminate command to workstation!
-#   notification_target_arn = "..."
-#   role_arn                = "..."
-# }

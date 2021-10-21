@@ -27,16 +27,12 @@ provider "aws" {
   profile = "dmw2151"
 }
 
-# [TODO][NOTE][DEV] IP address of the terraform user - assumes deployment from local env.
-data "http" "deployerip" {
-  url = "http://ipv4.icanhazip.com"
-}
 
 data "aws_caller_identity" "current" {}
 
 module "chef" {
   source                      = "../modules/chef"
-  deployer_ip                 = "${chomp(data.http.deployerip.body)}/32"
+  deployer_ip                 = "${var.deployer_ip}"
   aws_account_id              = data.aws_caller_identity.current.account_id
   default_region              = "us-east-1"
   default_availability_zone   = "us-east-1f"
@@ -46,5 +42,9 @@ module "chef" {
 
 output "workstation_ip" {
   value = module.chef.chef-workstation-ip
+}
+
+output "ssh_group_id" {
+  value = module.chef.ssh_group_id
 }
 
