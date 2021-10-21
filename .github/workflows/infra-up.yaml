@@ -120,8 +120,9 @@ jobs:
           username: "ubuntu"
           port: 22
           key: ${{ secrets.CHEF__WORKSTATION_SSH_KEY }}
-          source: "chef-repo/cookbooks/jupyter"
-          target: "/home/ubuntu/chef-repo/cookbooks/"
+          overwrite: true
+          source: "chef-repo/cookbooks/jupyter/**"
+          target: "/home/ubuntu/chef-repo/cookbooks/jupyter"
       
       - name: Update Worker Role
         uses: appleboy/ssh-action@master
