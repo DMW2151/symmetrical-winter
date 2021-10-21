@@ -194,7 +194,7 @@ jobs:
       - name: Run Client on Worker Nodes
         run: |
           set -x;
-          ssh workstation knife ssh 'role:worker' 'sudo chef-client' \
+          ssh -A workstation knife ssh 'role:worker' 'sudo chef-client' \
             --ssh-user ubuntu \
             --user ${{ env.chef_username }} \
             --config /home/ubuntu/.chef/knife.rb
@@ -202,7 +202,7 @@ jobs:
       - name: Run Client on Server Nodes
         run: |
           set -x;
-          ssh workstation knife ssh 'role:server' 'sudo chef-client' \
+          ssh -A workstation knife ssh 'role:server' 'sudo chef-client' \
             --ssh-user ubuntu \
             --user ${{ env.chef_username }} \
             --config /home/ubuntu/.chef/knife.rb
