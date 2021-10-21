@@ -164,22 +164,48 @@ jobs:
           envs: CHEF__USER_NAME
           script: |
             set -x;
-            knife cookbook upload jupyter --config /home/ubuntu/.chef/knife.rb --user $CHEF__USER_NAME --include-dependencies
+            knife cookbook upload jupyter \
+              --config /home/ubuntu/.chef/knife.rb \
+              --user $CHEF__USER_NAME \
+              --include-dependencies
       
       - name: Init SSH Forwarding Agent
         uses: webfactory/ssh-agent@v0.5.3
         with:
             ssh-private-key: ${{ secrets.CHEF__WORKSTATION_SSH_KEY }}
+            
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh/
+          echo "$SSH_KEY" > ~/.ssh/workstation.key
+          chmod 600 ~/.ssh/workstation.key
+          cat >>~/.ssh/config <<END
+          Host workstation
+            HostName $SSH_HOST
+            User $SSH_USER
+            IdentityFile ~/.ssh/workstation.key
+            StrictHostKeyChecking no
+          END
+        env:
+          SSH_USER: "ubuntu"
+          SSH_KEY: ${{ secrets.CHEF__WORKSTATION_SSH_KEY }}
+          SSH_HOST: ${{ env.CHEF__WORKSTATION_IP }}
 
       - name: Run Client on Worker Nodes
         run: |
           set -x;
-          ssh -A ubuntu@${{ env.CHEF__WORKSTATION_IP }}  knife ssh 'role:worker' 'sudo chef-client' --ssh-user ubuntu --user ${{ env.chef_username }}  --config /home/ubuntu/.chef/knife.rb
+          ssh workstation knife ssh 'role:worker' 'sudo chef-client' \
+            --ssh-user ubuntu \
+            --user ${{ env.chef_username }} \
+            --config /home/ubuntu/.chef/knife.rb
           
       - name: Run Client on Server Nodes
         run: |
           set -x;
-          ssh -A ubuntu@${{ env.CHEF__WORKSTATION_IP }}  knife ssh 'role:server' 'sudo chef-client' --ssh-user ubuntu --user ${{ env.chef_username }}  --config /home/ubuntu/.chef/knife.rb
+          ssh workstation knife ssh 'role:server' 'sudo chef-client' \
+            --ssh-user ubuntu \
+            --user ${{ env.chef_username }} \
+            --config /home/ubuntu/.chef/knife.rb
 
       - name: Remove Actions IP from Security Group
         run: |
