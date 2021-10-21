@@ -50,4 +50,3 @@ The credentialing information passed to the repository requires an IAM role with
 - [ ] The build for Chef Server is slow when Terraform comes Up. It would be nice to use Packer to build the Chef Server into an AMI e.g. `Ubuntu-18.04-Chef-13.1.13`, use that in Terraform, and cut `cloud init` time by 95%. Moreover, it would be nice to build the ASG nodes into `Ubuntu-18.04-Knife-xx.xx.xx` so we bring instances up faster
 
 - [ ] DNS Resolution for the Chef Server
-  
