@@ -92,13 +92,13 @@ jobs:
         run: |
           echo "AWS_DEFAULT_REGION=us-east-1" >> $GITHUB_ENV
       
-      - name: Install 
+      - name: Install Apt
         run: |
           sudo apt-get update -y && sudo apt-get install -y jq 
 
       - name: Add Github Actions IP to Security group
         run: |
-          AWS__SG=$( echo ${{ steps.terraform.outputs.tf_actions_output  }} | jq -r '.workstation_ip.value' )
+          AWS__SG=`(echo ${{ steps.terraform.outputs.tf_actions_output  }} | jq -r '.workstation_ip.value' )`
           aws ec2 authorize-security-group-ingress \
             --group-id $AWS__SG \
             --protocol tcp \
@@ -134,7 +134,7 @@ jobs:
 
       - name: Remove Github Actions IP from Security Group
         run: |
-          AWS__SG=$( echo ${{ steps.terraform.outputs.tf_actions_output  }} | jq -r '.workstation_ip.value' )
+          AWS__SG=`(echo ${{ steps.terraform.outputs.tf_actions_output  }} | jq -r '.workstation_ip.value' )`
           aws ec2 revoke-security-group-ingress \
             --group-id $AWS__SG \
             --protocol tcp \
