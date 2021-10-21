@@ -22,6 +22,14 @@ jobs:
     steps:
       
       - uses: actions/checkout@v2
+      
+      - name: Install Apt
+        run: |
+          sudo apt-get update -y && sudo apt-get install -y jq 
+      
+      - name: Get Github action IP
+        id: ip
+        uses: haythem/public-ip@v1.2
 
       - name: Terraform Init
         uses: hashicorp/terraform-github-actions@master
@@ -84,10 +92,6 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       
-      - name: Get Github action IP
-        id: ip
-        uses: haythem/public-ip@v1.2
-
       - name: Setting environment variables..
         run: |
           set -x;
@@ -95,10 +99,6 @@ jobs:
           echo "AWS_DEFAULT_REGION=us-east-1" >> $GITHUB_ENV
           echo "CHEF__WORKSTATION_IP=$CHEF__WORKSTATION_IP" >> $GITHUB_ENV
       
-      - name: Install Apt
-        run: |
-          sudo apt-get update -y && sudo apt-get install -y jq 
-
       - name: Add Github Actions IP to Security group
         run: |
           set -x;
@@ -165,7 +165,12 @@ jobs:
           script: |
             set -x;
             knife cookbook upload jupyter --config /home/ubuntu/.chef/knife.rb --user $CHEF__USER_NAME --include-dependencies
-      
+
+      - uses: webfactory/ssh-agent@v0.5.3
+        with:
+            # [TODO]: This is a shortcut! These should be different keys!!
+            ssh-private-key: ${{ secrets.CHEF__WORKSTATION_SSH_KEY }}
+
       - name: Run Client on Nodes
         uses: appleboy/ssh-action@master
         env:
@@ -181,7 +186,7 @@ jobs:
             knife ssh 'role:worker' 'sudo chef-client' --ssh-user ubuntu --user $CHEF__USER_NAME --config /home/ubuntu/.chef/knife.rb &&\
             knife ssh 'role:server' 'sudo chef-client' --ssh-user ubuntu --user $CHEF__USER_NAME --config /home/ubuntu/.chef/knife.rb
       
-      - name: Remove Github Actions IP from Security Group
+      - name: Remove Actions IP from Security Group
         run: |
           set -x;
           AWS__SG=`( echo '${{ steps.terraform.outputs.tf_actions_output }}' | jq -r '.ssh_group_id.value' )`
