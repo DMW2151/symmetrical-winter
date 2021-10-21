@@ -14,15 +14,14 @@ resource "null_resource" "wait_for_chef_init" {
   # Suggestion: https://rpadovani.com/terraform-cloudinit
   provisioner "local-exec" {
 
-    interpreter = ["/bin/bash", "-c"]
+    interpreter = ["/bin/sh", "-c"]
 
     command = <<-EOF
     set -x -Ee -o pipefail;
 
     export AWS_DEFAULT_REGION=${var.default_region}
 
-    sudo apt-get update &&\
-    sudo apt-get install -y jq awscli
+    apt-get update && apt-get install -y jq awscli
 
     export command_id=`(aws ssm send-command --document-name ${aws_ssm_document.cloud_init_wait.arn} --instance-ids ${aws_instance.chef-server.id} --output text --query "Command.CommandId")`
     
