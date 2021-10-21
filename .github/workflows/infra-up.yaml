@@ -114,7 +114,7 @@ jobs:
       - name: Copy Cookbook to WorkStation
         uses: appleboy/scp-action@master
         with:
-          host: $(echo  '${{ steps.terraform.outputs.tf_actions_output  }}' | jq -r '.ssh_group_id.value' )
+          host: $(echo  '${{ steps.terraform.outputs.tf_actions_output  }}' | jq -r '.workstation_ip.value' )
           username: "ubuntu"
           port: 22
           key: ${{ secrets.CHEF__WORKSTATION_SSH_KEY }}
@@ -126,7 +126,7 @@ jobs:
         env:
           CHEF__USER_NAME: ${{ env.chef_username }} 
         with:
-          host: $(echo  '${{ steps.terraform.outputs.tf_actions_output  }}' | jq -r '.ssh_group_id.value' )
+          host: $(echo  '${{ steps.terraform.outputs.tf_actions_output  }}' | jq -r '.workstation_ip.value' )
           username: "ubuntu"
           key: ${{ secrets.CHEF__WORKSTATION_SSH_KEY }}
           port: 22
