@@ -16,38 +16,38 @@ Please see the following links for more detail on the project:
 
 - [YouTube](...)
 - [DevPost](https://devpost.com/software/autoscaling-jupyterhub)
-- [System Architecture](https://tiles.maphub.dev/docs/pages/asg_arch.pdf)
+- [System Architecture](./docs/docs.pdf)
 
+## Requirements Before Deployment
 
-## Requires In Github
+### Github
 
-The CI for this deployment requires the following secrets attached to your repo
+To run an automated build, the CI for this deployment requires the following secrets attached to a Github repository.
 
-- AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY/CHEF__WORKSTATION_SSH_KEY/AWS_ACCOUNT_ID
-
-
-- Not Highly Available - Push sinks you!
-
-
-
-## Assumptions, Errata, Notes
-
-- Assumes you have a domain to use for the notebook server.
-
-- Assumes `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`...
+- AWS_ACCESS_KEY_ID
+- AWS_SECRET_ACCESS_KEY
+- CHEF__WORKSTATION_SSH_KEY
+- AWS_ACCOUNT_ID
   
-- Ideally you have a FQDN beyond the EC2 DNS as well, but for this example I rely on the public DNS for my Chef Server. SSL Nginx derivative openresty (used by Chef) is not officially supported by certbot, so I leave DNS resolution for the Chef Server as an exercise for the developer.
+Note that it is possible to deploy from a local machine, but the `local-exec` step in the `terraform` pipeline are largely dependent on your environment. Deploying from an Alpine VM would most closely replicate `hashicorp/terraform-github-actions`
+
+### AWS
+
+The credentialing information passed to the repository requires an IAM role with a fairly high level of privilege. If your org doesn't maintain IAM roles with write level access to AWS services in this deployment (e.g. you use SSO temp credentials) these will need to be rotated out relatively often.
+
+## Miscellaneous Assumptions, Errata, Notes
+
+- Assumes have a domain to use for the notebook server. Ideally you have a FQDN other than the EC2 DNS for the Chef Server as well; for this demo I rely on the public DNS for my Chef Server. The Nginx derivative Open-Resty (used by Chef) is not officially supported by Certbot, so I leave DNS resolution for the Chef Server as an exercise for the developer :).
   
 - Excludes hardening + (a lot) of security precautions to take, some of the more restrictive hardening suggestions work against this deployment's Jupyter NB assumptions.
 
-## TODO
+## TODO/Extras
 
-- [ ] Use SQS Queue to de-register ASG nodes from the sever after they're terminated
+- [ ] Use SQS Queue to de-register ASG nodes from the Chef Sever after they're terminated? or maybe an on-termination hook on the instance itself? or a recipe for the  to purge nodes if check-in > ${THRESHOLD}.
 
-- [ ] Set a user disk quota at the at hub level or by setting a quota on NFS/EFS
-
-- [ ] The build for Chef Server is slow (8-10min). It would be nice to use Packer to build the Chef Server into an AMI e.g. `Ubuntu-18.04-Chef-13.1.13`, use that in Terraform, and cut `cloud init` time by 95%
+- [ ] Set a user disk space and CPU quota, either by setting a quota on NFS/EFS (sensitive to which authenticator used), or via Hub Config
   
-- [ ] Moreso, it would be nice to build the ASG nodes into `Ubuntu-18.04-Knife-xx.xx.xx` so we bring instances up faster
+- [ ] The build for Chef Server is slow when Terraform comes Up. It would be nice to use Packer to build the Chef Server into an AMI e.g. `Ubuntu-18.04-Chef-13.1.13`, use that in Terraform, and cut `cloud init` time by 95%. Moreover, it would be nice to build the ASG nodes into `Ubuntu-18.04-Knife-xx.xx.xx` so we bring instances up faster
 
 - [ ] DNS Resolution for the Chef Server
+  

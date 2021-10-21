@@ -33,7 +33,24 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-
+      - name: Terraform Get Output - IPV4
+        id: terraform
+        uses: hashicorp/terraform-github-actions@master
+        with:
+          tf_actions_version: ${{ env.tf_version }}
+          tf_actions_subcommand: 'output'
+          tf_actions_working_dir: ${{ env.tf_working_dir }}
+      
+      - name: Copy Cookbook to WorkStation
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ steps.terraform.outputs.tf_actions_output.workstation_ip.value  }}
+          username: "ubuntu"
+          port: 22
+          key: ${{ secrets.CHEF__WORKSTATION_SSH_KEY }}
+          source: "./chef-repo/cookbooks/jupyter/"
+          target: "~/chef-repo/cookbooks/"
+          
       - name: Terraform Format - Main
         uses: hashicorp/terraform-github-actions@master
         with:
@@ -70,24 +87,7 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       
-      - name: Terraform Get Output - IPV4
-        id: terraform
-        uses: hashicorp/terraform-github-actions@master
-        with:
-          tf_actions_version: ${{ env.tf_version }}
-          tf_actions_subcommand: 'output'
-          tf_actions_working_dir: ${{ env.tf_working_dir }}
-    
-      - name: Copy Cookbook to WorkStation
-        uses: appleboy/scp-action@master
-        with:
-          host: ${{ steps.terraform.outputs.tf_actions_output  }}
-          username: "ubuntu"
-          port: 22
-          key: ${{ secrets.CHEF__WORKSTATION_SSH_KEY }}
-          source: "./chef-repo/cookbooks/jupyter/"
-          target: "~/chef-repo/cookbooks/"
-        
+      
       - name: Update Client Nodes
         uses: appleboy/ssh-action@master
         env:
