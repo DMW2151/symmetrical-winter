@@ -89,7 +89,7 @@ resource "aws_instance" "chef-server" {
   # Storage
   root_block_device {
     volume_type           = "gp3"
-    volume_size           = 10
+    volume_size           = 20
     delete_on_termination = true
     tags = {
       Name   = "Chef Server - Root Volume"
