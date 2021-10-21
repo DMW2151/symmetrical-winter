@@ -15,19 +15,25 @@ resource "null_resource" "wait_for_chef_init" {
   provisioner "local-exec" {
 
     interpreter = ["/bin/bash", "-c"]
-
+    environment = {
+      AWS_DEFAULT_REGION=${var.default_region}
+    }
     command = <<-EOF
     set -x -Ee -o pipefail;
 
-    export AWS_DEFAULT_REGION=${var.default_region}
+    aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID \
+      --profile default
 
-    apt-get update && apt-get install -y jq awscli
+    aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY \
+      --profile default
+
+    aws configure set region $AWS_DEFAULT_REGION --profile default
 
     export command_id=`(aws ssm send-command --document-name ${aws_ssm_document.cloud_init_wait.arn} --instance-ids ${aws_instance.chef-server.id} --output text --query "Command.CommandId")`
     
-    # [REQ]: This needs awscli 1.19+; For Reference: (aws-cli/1.20.42 Python/3.7.3 botocore/1.21.42)
-    # Hamfisted and Inelegant - AFAIK `aws ssm wait command-executed` polls on a
-    # fixed interval of 5s for 20x; no way to extend beyond 100s interval
+  
+    # `aws ssm wait command-executed` polls on a fixed interval of 5s for 20x; no 
+    # way to extend beyond 100s interval
     
     # From experience...that chef server init takes 5+ min always, give up to 100 * 10 == 20 min to init!
     for i in {0..10}
