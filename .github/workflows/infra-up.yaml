@@ -98,7 +98,8 @@ jobs:
 
       - name: Add Github Actions IP to Security group
         run: |
-          AWS__SG=`(echo ${{ steps.terraform.outputs.tf_actions_output  }} | jq -r '.workstation_ip.value' )`
+          echo ${{ steps.terraform.outputs.tf_actions_output  }} >> /tmp/actions.json
+          AWS__SG=`( cat /tmp/actions.json | jq -r '.workstation_ip.value' )`
           aws ec2 authorize-security-group-ingress \
             --group-id $AWS__SG \
             --protocol tcp \
