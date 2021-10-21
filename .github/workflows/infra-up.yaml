@@ -120,8 +120,8 @@ jobs:
           username: "ubuntu"
           port: 22
           key: ${{ secrets.CHEF__WORKSTATION_SSH_KEY }}
-          source: "./chef-repo/cookbooks/jupyter/"
-          target: "~/chef-repo/cookbooks/"
+          source: "chef-repo/cookbooks/jupyter"
+          target: "/home/ubuntu/chef-repo/cookbooks/"
       
       - name: Update Worker Role
         uses: appleboy/ssh-action@master
@@ -177,8 +177,8 @@ jobs:
           envs: CHEF__USER_NAME
           script: |
             set -x;
-            knife ssh "role:worker" "sudo chef-client" --ssh-user ubuntu --user $CHEF__USER_NAME &&\
-            knife ssh "role:server" "sudo chef-client" --ssh-user ubuntu --user $CHEF__USER_NAME
+            knife ssh 'role:worker' 'sudo chef-client' --ssh-user ubuntu --user $CHEF__USER_NAME &&\
+            knife ssh 'role:server' 'sudo chef-client' --ssh-user ubuntu --user $CHEF__USER_NAME
       
       - name: Remove Github Actions IP from Security Group
         run: |
