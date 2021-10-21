@@ -10,8 +10,8 @@ data "template_file" "workstation-userdata" {
 }
 
 # Resource: https://registry.terraform.io/providers/hashicorp/time/latest/docs/resources/sleep
-resource "time_sleep" "wait_30_seconds_workstation" {
-  create_duration = "30s"
+resource "time_sleep" "wait_60_seconds_workstation" {
+  create_duration = "60s"
   depends_on = [
     aws_instance.chef-workstation
   ]
@@ -71,8 +71,7 @@ resource "null_resource" "wait_for_workstation_init" {
 
   # Instance MUST show as available; w.o wait get pending instance errors!
   depends_on = [
-    aws_instance.chef-workstation,
-    time_sleep.wait_30_seconds_workstation
+    time_sleep.wait_60_seconds_workstation
   ]
 
   # Pre-emptive commands => On Instance ID Change
