@@ -32,7 +32,7 @@ data "aws_caller_identity" "current" {}
 
 module "chef" {
   source                      = "../modules/chef"
-  deployer_ip                 = "${var.deployer_ip}"
+  deployer_ip                 = var.deployer_ip
   aws_account_id              = data.aws_caller_identity.current.account_id
   default_region              = "us-east-1"
   default_availability_zone   = "us-east-1f"
