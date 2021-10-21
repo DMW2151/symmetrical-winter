@@ -24,6 +24,7 @@ resource "time_sleep" "wait_30_seconds_workstation" {
 resource "null_resource" "wait_for_workstation_init" {
 
   provisioner "local-exec" {
+    interpreter = ["/bin/bash", "-c"]
     command = <<-EOF
     set -x -Ee -o pipefail;
 
