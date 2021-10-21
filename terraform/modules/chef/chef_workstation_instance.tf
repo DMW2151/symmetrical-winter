@@ -25,7 +25,9 @@ resource "null_resource" "wait_for_workstation_init" {
 
   provisioner "local-exec" {
     command = <<-EOF
-    set -x;
+    set -x -Ee -o pipefail;
+
+    echo `(cat /etc/*-release)`
 
     export AWS_DEFAULT_REGION=${var.default_region}
 

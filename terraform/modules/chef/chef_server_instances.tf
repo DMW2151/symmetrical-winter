@@ -14,7 +14,7 @@ resource "null_resource" "wait_for_chef_init" {
   # Suggestion: https://rpadovani.com/terraform-cloudinit
   provisioner "local-exec" {
 
-    interpreter = ["/bin/sh", "-c"]
+    interpreter = ["/bin/bash", "-c"]
 
     command = <<-EOF
     set -x -Ee -o pipefail;

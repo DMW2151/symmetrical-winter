@@ -22,7 +22,7 @@ jobs:
         with:
           python-version: 3.9
        
-      - name: Install AWS CLI
+      - name: Pip Install AWS CLI
         run: |
           sudo python -m pip install awscli
       
