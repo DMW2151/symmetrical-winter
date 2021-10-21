@@ -172,6 +172,10 @@ jobs:
             ssh-private-key: ${{ secrets.CHEF__WORKSTATION_SSH_KEY }}
 
       - name: Run Client on Nodes
+        run: |
+          
+
+      - name: Run Client on Nodes
         uses: appleboy/ssh-action@master
         env:
           CHEF__USER_NAME: ${{ env.chef_username }} 
