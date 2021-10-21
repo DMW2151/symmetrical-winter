@@ -89,11 +89,11 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       
-      - name: Terraform Refresh
+      - name: Terraform Apply - Stand-in for Refresh
         uses: hashicorp/terraform-github-actions@master
         with:
           tf_actions_version: ${{ env.tf_version }}
-          tf_actions_subcommand: 'refresh'
+          tf_actions_subcommand: 'apply'
           tf_actions_working_dir: ${{ env.tf_working_dir }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
