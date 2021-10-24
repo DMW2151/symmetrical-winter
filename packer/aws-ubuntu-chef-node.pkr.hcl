@@ -73,8 +73,6 @@ source "amazon-ebs" "ubuntu-chef-nodes" {
   tags = {
     OS_Version = "Ubuntu"
     Release    = "Latest"
-    Build Repo = ""
-    Build File = ""
   }
 
 }
