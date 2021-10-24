@@ -24,6 +24,8 @@ resource "null_resource" "wait_for_workstation_init" {
     sleep 30;
     export isalpine=$(uname -a | grep -iE alpine)
 
+    uname -a
+
     if [ ! -z "$isalpine" ]; then
       apk update &&\
         apk add aws-cli
