@@ -6,10 +6,12 @@ data "template_file" "workstation-userdata" {
   template = filebase64("./../modules/chef/user_data/workstation_userdata.sh")
 }
 
-# [CAREFUL W. PROVISIONERS!] Local Exec => Execute a SSM document From Local Machine
-# which waits for cloud init to finish - blocks ASG from coming up before Workstation
-# or Workstation from coming up before server
-# Suggestion From: https://rpadovani.com/terraform-cloudinit
+
+resource "time_sleep" "wait_chef_server_stable_30s" {
+  depends_on = [aws_instance.chef-server]
+  create_duration = "30s"
+}
+
 
 data "aws_ami" "ubuntu-chef-workstation" {
   most_recent = true
@@ -73,48 +75,8 @@ resource "aws_instance" "chef-workstation" {
 
   # Depends on - Give all peripheral instances an explicit dependency on the Server
   depends_on = [
-    aws_instance.chef-server
+    aws_instance.chef-server,  time_sleep.wait_chef_server_stable_30s
   ]
-
-  provisioner "local-exec" {
-    interpreter = ["/bin/bash", "-c"]
-    command     = <<-EOF
-    set -x;
-
-    # Small Buffer to Ensure Instance is Up - Could be a Null Resource
-    sleep 20;
-    
-    uname -a;
-    DEBIAN_FRONTEND=noninteractive
-    
-    apt-get update &&\
-      apt-get install -y awscli 
-    
-    command_id=`(aws ssm send-command --document-name ${aws_ssm_document.cloud_init_wait.arn} --instance-ids ${self.id} --output text --query "Command.CommandId")`
-    
-    # From experience...that chef server init takes 10 min to init on a t3.medium - Now Using Packer - Leave this 
-    # Block In, but do not loop over checks. `aws ssm wait command-executed` polls on a fixed interval of 5s for 20x 
-    # if does not init in 100s, assume it's a lost cause!
-    if ! aws ssm wait command-executed --command-id $command_id --instance-id ${self.id}; then
-
-      aws ssm get-command-invocation \
-        --command-id $command_id \
-        --instance-id ${self.id} \
-        --query StandardOutputContent
-      
-      aws ssm get-command-invocation \
-        --command-id $command_id \
-        --instance-id ${self.id} \
-        --query StandardErrorContent
-      
-      # [TODO][WARN] Kill the Instance If UserData Can't Get Brought Up - Keeps tf state Clean
-      # This is pretty ugly, but if cloud init hangs or fails it taints the TF state file...
-      aws ec2 terminate-instances --instance-ids ${self.id}
-      exit 1
-    fi;
-
-    EOF
-  }
 
   # Tags
   tags = {

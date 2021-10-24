@@ -6,6 +6,13 @@ data "template_file" "hub-leader-userdata" {
   template = filebase64("./../modules/chef/user_data/hubserver_userdata.sh")
 }
 
+
+resource "time_sleep" "wait_chef_workstation_stable_30s" {
+  depends_on = [aws_instance.chef-workstation]
+  create_duration = "30s"
+}
+
+
 # Need an instance that can be used as the Chef Server
 # Resource: https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/instance
 resource "aws_instance" "hub-leader" {
@@ -54,7 +61,7 @@ resource "aws_instance" "hub-leader" {
   }
 
   depends_on = [
-    aws_instance.chef-workstation
+    aws_instance.chef-workstation, time_sleep.wait_chef_workstation_stable_30s
   ]
 
   # Tags
