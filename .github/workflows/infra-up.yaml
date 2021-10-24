@@ -151,9 +151,9 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Get Github Action IP
-          id: ip
-          if: steps.changed-files.outputs.any_changed == 'true'
-          uses: haythem/public-ip@v1.2
+        id: ip
+        if: steps.changed-files.outputs.any_changed == 'true'
+        uses: haythem/public-ip@v1.2
 
       - name: Add Github Actions IP to Security Group
         run: |
