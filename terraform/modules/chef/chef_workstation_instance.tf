@@ -16,7 +16,7 @@ data "template_file" "workstation-userdata" {
 resource "null_resource" "wait_for_workstation_init" {
 
   provisioner "local-exec" {
-    interpreter = ["/bin/bash", "-c"]
+    interpreter = ["/bin/sh", "-c"]
     command     = <<-EOF
     set -x;
 
