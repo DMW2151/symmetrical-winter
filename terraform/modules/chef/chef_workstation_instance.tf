@@ -22,7 +22,7 @@ resource "null_resource" "wait_for_workstation_init" {
     
     export isubuntu=$(uname -a | grep -iE ubuntu)
     
-    if [ ! -z "$ubuntu" ]; then
+    if [ ! -z "$isubuntu" ]; then
       DEBIAN_FRONTEND=noninteractive
       apt-get update &&\
         apt-get install -y awscli 
