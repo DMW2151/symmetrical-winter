@@ -4,9 +4,6 @@
 # Resource: https://registry.terraform.io/providers/hashicorp/template/latest/docs/data-sources/file
 data "template_file" "workstation-userdata" {
   template = filebase64("./../modules/chef/user_data/workstation_userdata.sh")
-  depends_on = [
-    null_resource.wait_for_chef_init
-  ]
 }
 
 # [CAREFUL W. PROVISIONERS!] Local Exec => Execute a SSM document From Local Machine
