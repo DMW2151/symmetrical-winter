@@ -246,7 +246,9 @@ jobs:
           envs: CHEF__USER_NAME
           script: |
             set -x;
-            knife role run_list set worker "recipe[jupyter::common-apt-get]", "recipe[jupyter::common-efs-dir]", "recipe[jupyter::hub-worker-join-swarm]" --user $CHEF__USER_NAME --config /home/ubuntu/.chef/knife.rb
+            knife role run_list set worker "recipe[jupyter::common-apt-get]", "recipe[jupyter::common-efs-dir]", "recipe[jupyter::hub-worker-join-swarm]" \
+              --user $CHEF__USER_NAME \
+              --config /home/ubuntu/.chef/knife.rb
   
       - name: Update Server Role
         uses: appleboy/ssh-action@master

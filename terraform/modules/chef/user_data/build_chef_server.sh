@@ -35,21 +35,13 @@ export CHEF__EMAIL=`cat /home/ubuntu/.chef/chef_config.json | jq -r '.email'`
 export CHEF__PWD=`cat /home/ubuntu/.chef/chef_config.json | jq -r '.password'`
 export CHEF__ORG_NAME=`cat /home/ubuntu/.chef/chef_config.json | jq -r '.organization'`
 
-
 ## Create Default Org and "Admin" user...
 sudo chef-server-ctl user-create $CHEF__USER_NAME $CHEF__FIRST_NAME $CHEF__LAST_NAME $CHEF__EMAIL $CHEF__PWD \
     --filename /home/ubuntu/.chef/$CHEF__USER_NAME.pem
 
-sudo echo "foo" >> hello.txt
-aws s3 cp hello.txt s3://$CHEF__USER_NAME-chef/nginx/
-
 sudo chef-server-ctl org-create $CHEF__ORG_NAME "$CHEF__ORG_NAME" \
     --association_user $CHEF__USER_NAME \
     --filename /home/ubuntu/.chef/$CHEF__ORG_NAME.pem
-
-sudo echo "foo" >> world.txt
-aws s3 cp hello.txt s3://$CHEF__USER_NAME-chef/nginx/
-
 
 # [TODO]: Clean up this S3 bucket s.t. multiple keys don't stay here between 
 # runs => should only contain a single *.crt, *.key, and dhparam file...

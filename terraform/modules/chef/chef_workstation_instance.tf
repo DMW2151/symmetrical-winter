@@ -61,6 +61,7 @@ resource "null_resource" "wait_for_workstation_init" {
   }
 
 }
+
 data "aws_ami" "ubuntu-chef-workstation" {
   most_recent = true
 
@@ -123,7 +124,8 @@ resource "aws_instance" "chef-workstation" {
 
   # Depends on - Give all peripheral instances an explicit dependency on the Server
   depends_on = [
-    null_resource.wait_for_chef_init
+    null_resource.wait_for_chef_init,
+    aws_instance.chef-server
   ]
 
   # Tags
