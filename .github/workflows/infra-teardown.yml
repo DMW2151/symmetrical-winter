@@ -1,4 +1,4 @@
-name: Teardown Terraform
+name: Core Infra Teardown
 
 on:
   workflow_dispatch:

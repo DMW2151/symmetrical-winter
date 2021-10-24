@@ -1,4 +1,4 @@
-name: Apply Terraform
+name: Core Infrastructure Up
 
 on:
   push:
@@ -24,12 +24,16 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0  # OR "2" -> To retrieve the preceding commit.
 
       # Get Changed Files and Check to See if Our Target File is in the ChangeSet
+      # https://github.com/tj-actions/changed-files
       - name: Get Changed Packer Files
         id: changed-files
         uses: tj-actions/changed-files@v11
         with:
+
           files: |
             ${{ matrix.buildfile }}
 
