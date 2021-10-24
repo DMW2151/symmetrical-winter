@@ -14,6 +14,8 @@ resource "aws_route53_record" "maphub_nb_cname_record" {
 }
 
 
+# [TODO] - This is Not a Meaningful Record for this demo 
+# Because We do not terminate SSL for this domain - use the EC2 instance DNS addr
 resource "aws_route53_record" "maphub_chef_a_record" {
   zone_id = data.aws_route53_zone.primary.zone_id
   name    = "chef.${var.target_domain}"

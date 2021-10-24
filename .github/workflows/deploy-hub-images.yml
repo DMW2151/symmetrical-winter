@@ -1,0 +1,58 @@
+#
+# This pipeline builds and pushes the image that is launched as the main JupyterHub server
+# changes to Auth Methodology or Spawner Methodology at the Hub level require a re-build of 
+# this pipeline to take affect
+#
+# [NOTE] This image should almost always be a (very) slightly modified version of 
+# `jupyterhub/jupyterhub:1.4.2` or `jupyterhub/jupyterhub:latest`
+#
+
+name: Deploy Hub Image
+
+on:
+  push:
+    paths:
+      - './jupyterhub/hub/**'
+  workflow_dispatch:
+
+jobs:
+
+  deploy-hub-image:
+    runs-on: ubuntu-latest
+    env:
+      AWS__DEFAULT_REGION: 'us-east-1' 
+    
+    steps:
+      - uses: actions/checkout@v2
+      
+      - uses: actions/setup-python@v1
+        with:
+          python-version: 3.9
+        
+      - name: Install AWS CLI
+        run: |
+          sudo python -m pip install awscli
+      
+      - name: Create AWS Default Profile
+        run: |
+          aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }} --profile default
+          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }} --profile default
+          aws configure set region ${{ env.AWS__DEFAULT_REGION }} --profile default
+      
+      # [TODO] Consider Managing this With Terraform Instead!!
+      - name: Create Repository If DNE
+        run: |
+          aws ecr create-repository \
+            --profile default \
+            --repository-name jupyterhubserver \
+            --image-scanning-configuration scanOnPush=true || exit 0
+          
+      - uses: whoan/docker-build-with-cache-action@v5
+        with:
+          username: "${{ secrets.AWS_ACCESS_KEY_ID }}"  
+          password: "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+          registry: "${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS__DEFAULT_REGION }}.amazonaws.com"
+          image_name: jupyterhubserver
+          context: ./jupyterhub/hub/
+          image_tag: latest
+          push_image_and_stages: true

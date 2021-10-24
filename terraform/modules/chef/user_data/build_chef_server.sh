@@ -1,32 +1,18 @@
 #! /bin/bash
 
-# Configures Chef Infrastucture Server - Should see Chef on 
-# `https://ec2-xxx-xxx-xxx-xxx.compute-1.amazonaws.com/login`, DNS left as exercise!
-# If user data has run properly...
-
-# Basic apt-get update; install aws utils + jq for parsing misc. data
+# Basic Apt Updates
 sudo apt update &&\
     sudo apt -y upgrade &&\
     sudo apt install -y jq awscli
 
-# Installing && Configuring the Chef Server, this does a lot of the heavy 
-# lifting but takes a while! See note on waiting on cloud init!
-#
-# Reference: https://www.linode.com/docs/guides/install-a-chef-server-workstation-on-ubuntu-18-04/
-#
-wget https://packages.chef.io/files/stable/chef-server/13.1.13/ubuntu/18.04/chef-server-core_13.1.13-1_amd64.deb
+# Fetch Instance Identity Document
+# See: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-identity-documents.html
+export AWS__REGION=$(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | jq .region -r)
 
-sudo dpkg -i chef-server-core_13.1.13-1_amd64.deb &&\
-    sudo chef-server-ctl reconfigure --chef-license=accept
-
-# Init Chef Infrastructure frontend && Reconfigure
-sudo chef-server-ctl install chef-manage &&\
-    sudo chef-server-ctl reconfigure &&\
-    sudo chef-manage-ctl reconfigure 
-
-# Configure Default User and Organization - Setting params from SSM
-export AWS__REGION="us-east-1"
-echo `(aws ssm get-parameters --names chef_server_config --region=${AWS__REGION} | jq -r '.Parameters | first | .Value' | base64 -d)` > chef_config.json
+# Configure default user and organization, ssetting env vars from params fetched vis SSM
+aws ssm get-parameters \
+    --names chef_server_config \
+    --region=${AWS__REGION} | jq -r '.Parameters | first | .Value' | base64 -d > chef_config.json
 
 # Start Server User + Org Creation...
 export CHEF__USER_NAME=`cat chef_config.json | jq -r '.username'`

@@ -4,12 +4,14 @@
 #
 # Copyright:: 2021, The Authors, All Rights Reserved.
 
+# Docker Swarm Master Node - Generate Token for Worker Node to add self to swarn
 execute 'docker_swarm_add' do
     command "sudo docker swarm init --advertise-addr $(hostname -I | awk '{print $1}')"
     not_if 'sudo docker swarm join-token worker'
     action :run
 end
 
+# Docker Swarm Master Node - Advertise Leader Node via SSM parameter...
 execute 'advertize_swarm_token' do
     command "aws ssm put-parameter \
         --name swarm_leader_token \
@@ -19,5 +21,3 @@ execute 'advertize_swarm_token' do
         --overwrite"
     action :run
 end
-
-

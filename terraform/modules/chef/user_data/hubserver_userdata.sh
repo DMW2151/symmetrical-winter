@@ -1,14 +1,6 @@
 #! bin/bash
 set -xev
 
-#
-# This userdata runs on an auto-scaling (or spot) instance. Need to do an unattended registration of
-# a new node. The below registers the node, replicating what `knife bootstrap` does but from the 
-# node -> server; not server -> node
-#
-# See Reference: https://docs.chef.io/install_bootstrap/#unattended-installs
-#
-
 # Update Apt for Chef Install && Node registration
 sudo apt update &&\
     sudo apt -y upgrade &&\
@@ -19,7 +11,10 @@ export AWS__REGION=`(curl -s http://169.254.169.254/latest/dynamic/instance-iden
 export CHEF__INFRA_SERVER_IP=`(aws ssm get-parameter --name chef_server_ip --region=${AWS__REGION} | jq -r '.Parameter | .Value' )`
 export CHEF__INFRA_SERVER_DNS=`(aws ssm get-parameter --name chef_server_dns --region=${AWS__REGION} | jq -r '.Parameter | .Value' )`
 
-echo `(aws ssm get-parameters --names chef_server_config --region=${AWS__REGION} | jq -r '.Parameters | first | .Value' | base64 -d)` > chef_config.json
+aws ssm get-parameters \
+    --names chef_server_config \
+    --region=${AWS__REGION} | jq -r '.Parameters | first | .Value' | base64 -d > chef_config.json
+
 export CHEF__ORG_NAME=`cat chef_config.json | jq -r '.organization'`
 export CHEF__USER_NAME=`cat chef_config.json | jq -r '.username'`
 
@@ -33,7 +28,10 @@ sudo chown -R ubuntu /var/log/chef
 
 # Generate a random node name in the format `node-XXXXXXXX`
 export NODE_NAME=node-server-$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 8 | head -n 1)
-sudo touch /var/log/chef/node.log && sudo chmod 777 /var/log/chef/node.log && sudo echo $NODE_NAME >> /var/log/chef/node.log
+
+sudo touch /var/log/chef/node.log &&\
+    sudo chmod 777 /var/log/chef/node.log &&\
+    sudo echo $NODE_NAME >> /var/log/chef/node.log
 
 # Install Chef Client
 sudo wget https://omnitruck.chef.io/install.sh -O /etc/chef/install.sh &&\

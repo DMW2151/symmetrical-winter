@@ -6,11 +6,6 @@ sudo apt update &&\
     sudo apt -y upgrade &&\
     sudo apt install -y jq awscli
 
-# Install Workstation && use dpkg to install...
-wget https://packages.chef.io/files/stable/chef-workstation/0.2.43/ubuntu/18.04/chef-workstation_0.2.43-1_amd64.deb &&\
-sudo dpkg -i chef-workstation_0.2.43-1_amd64.deb &&\
-rm chef-workstation_0.2.43-1_amd64.deb
-
 # Create Repo && Default cookbooks
 cd /home/ubuntu &&\
     chef generate repo chef-repo

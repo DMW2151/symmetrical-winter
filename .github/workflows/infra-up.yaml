@@ -10,14 +10,67 @@ on:
 
 jobs:
 
-  terraform-apply-chef-infra:
+  # Rebuild AMIs via Packer - Triggers Cascading Updates Through Entire System -> 
+  # Will require (some) downtime while Terraform relaunches the Chef Server and JupyterHub
+  packer-build-machine-imgs:
+    runs-on: ubuntu-latest 
+    strategy:
+      matrix:
+        buildfile: [
+          './packer/aws-ubuntu-chef-node.pkr.hcl',
+          './packer/aws-ubuntu-chef-workstation.pkr.hcl',
+          './packer/aws-ubuntu-chef-server.pkr.hcl'
+        ]
 
+    steps:
+      - uses: actions/checkout@v2
+
+      # Get Changed Files and Check to See if Our Target File is in the ChangeSet
+      - name: Get Changed Packer Files
+        id: changed-files
+        uses: tj-actions/changed-files@v11
+        with:
+          files: |
+            ${{ matrix.buildfile }}
+
+      - name: List all modified files
+        run: |
+          for file in ${{ steps.changed-files.outputs.all_modified_files }}; do
+            echo "$file was modified"
+          done
+        
+      # Validate templates
+      - name: Validate Template
+        uses: hashicorp/packer-github-actions@master
+        with:
+          command: validate
+          arguments: -syntax-only
+          target: ./packer/.
+
+      # Build Artifacts
+      - name: Build AMI - Chef WorkStation
+        uses: hashicorp/packer-github-actions@master
+        with:
+          command: build
+          arguments: "-color=false -on-error=abort"
+          target: ./packer/aws-ubuntu-chef.pkr.hcl
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ env.AWS__REGION }}
+          PACKER_LOG: 1
+      
+      
+  terraform-apply-chef-infra:
     runs-on: ubuntu-latest 
     env:
       tf_version: '1.0.3'
       tf_working_dir: ./terraform/chef/
       tf_modules_dir: ./terraform/modules/**
       chef_username: dmw2151
+    needs: [
+      packer-build-machine-imgs
+    ]
 
     steps:
       
@@ -43,20 +96,6 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
      
-      - name: Terraform Format - Main
-        uses: hashicorp/terraform-github-actions@master
-        with:
-          tf_actions_version: ${{ env.tf_version }}
-          tf_actions_subcommand: 'fmt'
-          tf_actions_working_dir: ${{ env.tf_working_dir }}
-        
-      - name: Terraform Format - Modules
-        uses: hashicorp/terraform-github-actions@master
-        with:
-          tf_actions_version: ${{ env.tf_version }}
-          tf_actions_subcommand: 'fmt'
-          tf_actions_working_dir: ${{ env.tf_modules_dir }}
-
       - name: Terraform Validate - All
         uses: hashicorp/terraform-github-actions@master
         with:
@@ -95,24 +134,26 @@ jobs:
       - name: Setting environment variables..
         run: |
           set -x;
-          CHEF__WORKSTATION_IP=$(echo  '${{ steps.terraform.outputs.tf_actions_output  }}' | jq -r '.workstation_ip.value' ) 
           echo "AWS_DEFAULT_REGION=us-east-1" >> $GITHUB_ENV
+          CHEF__WORKSTATION_IP=$(echo  '${{ steps.terraform.outputs.tf_actions_output  }}' | jq -r '.workstation_ip.value' ) 
+          SWARM__IP=$(echo  '${{ steps.terraform.outputs.tf_actions_output  }}' | jq -r '.swarm_leader_ip.value' ) 
           echo "CHEF__WORKSTATION_IP=$CHEF__WORKSTATION_IP" >> $GITHUB_ENV
-      
-      - name: Add Github Actions IP to Security group
-        run: |
-          set -x;
-          AWS__SG=`( echo '${{ steps.terraform.outputs.tf_actions_output }}' | jq -r '.ssh_group_id.value' )`
-          aws ec2 authorize-security-group-ingress \
-            --group-id $AWS__SG \
-            --protocol tcp \
-            --port 22 \
-            --cidr ${{ steps.ip.outputs.ipv4 }}/32    
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: ${{ env.AWS_DEFAULT_REGION }}
+          echo "SWARM__IP=$SWARM__IP" >> $GITHUB_ENV
 
+  chef-push-cookbooks:
+
+    runs-on: ubuntu-latest 
+    env:
+      tf_version: '1.0.3'
+      tf_working_dir: ./terraform/chef/
+      tf_modules_dir: ./terraform/modules/**
+      chef_username: dmw2151
+    needs: [
+      terraform-apply-chef-infra
+    ]
+
+    steps:
+      
       - name: Copy Cookbook to WorkStation
         uses: appleboy/scp-action@master
         with:
@@ -136,8 +177,8 @@ jobs:
           envs: CHEF__USER_NAME
           script: |
             set -x;
-            knife role run_list set worker "recipe[jupyter::common-apt-get]", "recipe[jupyter::common-efs-dir]" --user $CHEF__USER_NAME --config /home/ubuntu/.chef/knife.rb
-
+            knife role run_list set worker "recipe[jupyter::hub-worker-join-swarm]", "recipe[jupyter::common-apt-get]", "recipe[jupyter::common-efs-dir]" --user $CHEF__USER_NAME --config /home/ubuntu/.chef/knife.rb
+  
       - name: Update Server Role
         uses: appleboy/ssh-action@master
         env:
@@ -150,8 +191,8 @@ jobs:
           envs: CHEF__USER_NAME
           script: |
             set -x;
-            knife role run_list set server "role[worker]",  "recipe[jupyter::hub-master-docker-init]", "recipe[jupyter::hub-master-jupyter]", "recipe[jupyter::hub-master-nginx]" --user $CHEF__USER_NAME --config /home/ubuntu/.chef/knife.rb
-
+            knife role run_list set server "recipe[jupyter::common-apt-get]", "recipe[jupyter::common-efs-dir]", "recipe[jupyter::hub-master-docker-init]", "recipe[jupyter::hub-master-jupyter]", "recipe[jupyter::hub-master-nginx]" --user $CHEF__USER_NAME --config /home/ubuntu/.chef/knife.rb
+  
       - name: Push Cookbooks
         uses: appleboy/ssh-action@master
         env:
@@ -168,56 +209,94 @@ jobs:
               --config /home/ubuntu/.chef/knife.rb \
               --user $CHEF__USER_NAME \
               --include-dependencies
-      
-      - name: Init SSH Forwarding Agent
-        uses: webfactory/ssh-agent@v0.5.3
-        with:
-            ssh-private-key: ${{ secrets.CHEF__WORKSTATION_SSH_KEY }}
+
+  chef-apply-cookbooks:
+
+      runs-on: ubuntu-latest 
+      env:
+        tf_version: '1.0.3'
+        tf_working_dir: ./terraform/chef/
+        tf_modules_dir: ./terraform/modules/**
+        chef_username: dmw2151
+      needs: [
+        terraform-apply-chef-infra
+      ]
+
+      steps:
+
+        - name: Add Github Actions IP to Security group
+          run: |
+            set -x;
+            AWS__SG=`( echo '${{ steps.terraform.outputs.tf_actions_output }}' | jq -r '.ssh_group_id.value' )`
+            aws ec2 authorize-security-group-ingress \
+              --group-id $AWS__SG \
+              --protocol tcp \
+              --port 22 \
+              --cidr ${{ steps.ip.outputs.ipv4 }}/32    
+          env:
+            AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            AWS_DEFAULT_REGION: ${{ env.AWS_DEFAULT_REGION }}
+        
+        - name: Init SSH Forwarding Agent
+          uses: webfactory/ssh-agent@v0.5.3
+          with:
+              ssh-private-key: ${{ secrets.CHEF__WORKSTATION_SSH_KEY }}
+              
+        - name: Configure SSH
+          run: |
+            mkdir -p ~/.ssh/
+            echo "$CHEF__WORKSTATION_SSH_KEY" > ~/.ssh/workstation.key
+            echo "$SWARM__SSH_KEY" > ~/.ssh/workstation.key
+            chmod 600 ~/.ssh/workstation.key
+            cat >>~/.ssh/config <<END
+            Host workstation
+              HostName $CHEF__WORKSTATION_SSH_HOST
+              User $SSH_USER
+              IdentityFile ~/.ssh/workstation.key
+              StrictHostKeyChecking no
+
+            Host SwarmLeader
+              HostName $SWARM__SSH_HOST
+              User $SSH_USER
+              IdentityFile ~/.ssh/swarmleader.key
+              StrictHostKeyChecking no
+            END
+
+          env:
+            SSH_USER: "ubuntu"
+            CHEF__WORKSTATION_SSH_KEY: ${{ secrets.CHEF__WORKSTATION_SSH_KEY }}
+            CHEF__WORKSTATION_SSH_HOST: ${{ env.CHEF__WORKSTATION_IP }}
+            SWARM__SSH_KEY: ${{ secrets.CHEF__WORKSTATION_SSH_KEY }} # TODO: These shouldn't be the same! 
+            SWARM__SSH_HOST: ${{ env.SWARM__IP }}
+
+        - name: Run Client on Worker Nodes
+          run: |
+            set -x;
+            ssh -A workstation knife ssh 'role:worker' 'sudo chef-client' \
+              --ssh-user ubuntu \
+              --user ${{ env.chef_username }} \
+              --config /home/ubuntu/.chef/knife.rb
             
-      - name: Configure SSH
-        run: |
-          mkdir -p ~/.ssh/
-          echo "$SSH_KEY" > ~/.ssh/workstation.key
-          chmod 600 ~/.ssh/workstation.key
-          cat >>~/.ssh/config <<END
-          Host workstation
-            HostName $SSH_HOST
-            User $SSH_USER
-            IdentityFile ~/.ssh/workstation.key
-            StrictHostKeyChecking no
-          END
-        env:
-          SSH_USER: "ubuntu"
-          SSH_KEY: ${{ secrets.CHEF__WORKSTATION_SSH_KEY }}
-          SSH_HOST: ${{ env.CHEF__WORKSTATION_IP }}
+        - name: Run Client on Server Nodes
+          run: |
+            set -x;
+            ssh -A workstation knife ssh 'role:server' 'sudo chef-client' \
+              --ssh-user ubuntu \
+              --user ${{ env.chef_username }} \
+              --config /home/ubuntu/.chef/knife.rb
 
-      - name: Run Client on Worker Nodes
-        run: |
-          set -x;
-          ssh -A workstation knife ssh 'role:worker' 'sudo chef-client' \
-            --ssh-user ubuntu \
-            --user ${{ env.chef_username }} \
-            --config /home/ubuntu/.chef/knife.rb
-          
-      - name: Run Client on Server Nodes
-        run: |
-          set -x;
-          ssh -A workstation knife ssh 'role:server' 'sudo chef-client' \
-            --ssh-user ubuntu \
-            --user ${{ env.chef_username }} \
-            --config /home/ubuntu/.chef/knife.rb
-
-      - name: Remove Actions IP from Security Group
-        run: |
-          set -x;
-          AWS__SG=`( echo '${{ steps.terraform.outputs.tf_actions_output }}' | jq -r '.ssh_group_id.value' )`
-          aws ec2 revoke-security-group-ingress \
-            --group-id $AWS__SG \
-            --protocol tcp \
-            --port 22 \
-            --cidr ${{ steps.ip.outputs.ipv4 }}/32
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: ${{ env.AWS_DEFAULT_REGION }}
-        if: always()
+        - name: Remove Actions IP from Security Group
+          run: |
+            set -x;
+            AWS__SG=`( echo '${{ steps.terraform.outputs.tf_actions_output }}' | jq -r '.ssh_group_id.value' )`
+            aws ec2 revoke-security-group-ingress \
+              --group-id $AWS__SG \
+              --protocol tcp \
+              --port 22 \
+              --cidr ${{ steps.ip.outputs.ipv4 }}/32
+          env:
+            AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            AWS_DEFAULT_REGION: ${{ env.AWS_DEFAULT_REGION }}
+          if: always()

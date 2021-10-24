@@ -44,6 +44,10 @@ output "workstation_ip" {
   value = module.chef.chef-workstation-ip
 }
 
+output "swarm_leader_ip" {
+  value = module.chef.swarm-leader-ip
+}
+
 output "ssh_group_id" {
   value = module.chef.ssh_group_id
 }

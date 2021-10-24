@@ -69,21 +69,55 @@ data "aws_iam_policy" "s3_full" {
   name = "AmazonS3FullAccess"
 }
 
+
+data "aws_iam_policy" "svc_discovery_read" {
+  name = "AWSCloudMapReadOnlyAccess"
+}
+
+
 data "aws_iam_policy" "ssm_mgmt" {
   name = "AmazonSSMManagedInstanceCore"
+}
+
+resource "aws_iam_policy" "ecr_read_only_plus" {
+  name = "AmazonElasticContainerRegistryPublicReadOnly"
+
+  policy = jsonencode({
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "ecr:GetAuthorizationToken",
+                "ecr:BatchCheckLayerAvailability",
+                "ecr:GetRepositoryPolicy",
+                "sts:GetServiceBearerToken",
+                "ecr:BatchGetImage",
+                "ecr:GetDownloadUrlForLayer"
+            ],
+            "Resource": "*"
+        }
+    ]
+ })
+
 }
 
 
 # Create an IAM role for The Chef Server w. SSM reader attached!
 # Resource: https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role
+# [TODO]: This instnce profile is being used for more than just Chef; It should be paired down
+# and split into roles for the ASG nodes etc...in general though, access to S3, SSM, and CloudMap is
+# essential...
 resource "aws_iam_role" "chef_server_profile" {
   name               = "chef_server_role"
   assume_role_policy = data.aws_iam_policy_document.instance-assume-role-policy.json
   managed_policy_arns = [
     aws_iam_policy.ssm_rw.arn,
     aws_iam_policy.acm_reader.arn,
+    aws_iam_policy.ecr_read_only_plus.arn,
     data.aws_iam_policy.s3_full.arn,
-    data.aws_iam_policy.ssm_mgmt.arn
+    data.aws_iam_policy.ssm_mgmt.arn,
+    data.aws_iam_policy.svc_discovery_read.arn
   ]
 }
 

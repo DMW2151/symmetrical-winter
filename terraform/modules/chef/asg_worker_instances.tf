@@ -55,9 +55,10 @@ resource "aws_autoscaling_group" "chef-workers" {
   health_check_type         = "EC2"
 
   # Security + Networking
+  # [WARN]: For large datasets this is an expensive ($) feature, the cost of 1 AZ vs 2 AZ on EFS is ~2x
   vpc_zone_identifier = [
     aws_subnet.default_subnet.id,
-    #aws_subnet.default_subnet_2.id
+    aws_subnet.default_subnet_2.id 
   ]
 
   # Deps on Hub...

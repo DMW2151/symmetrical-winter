@@ -1,19 +1,10 @@
 #! bin/bash
 set -xev
 
-#
-# This userdata runs on an auto-scaling (or spot) instance. Need to do an unattended registration of
-# a new node. The below registers the node, replicating what `knife bootstrap` does but from the 
-# node -> server; not server -> node
-#
-# See Reference: https://docs.chef.io/install_bootstrap/#unattended-installs
-#
-
 # Update Apt for Chef Install && Node registration
 sudo apt update &&\
     sudo apt -y upgrade &&\
     sudo apt install -y jq awscli
-
 
 # Get Params for the Installation && Registration!
 export AWS__REGION=`(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | jq .region -r)`
@@ -24,17 +15,8 @@ echo `(aws ssm get-parameters --names chef_server_config --region=${AWS__REGION}
 export CHEF__ORG_NAME=`cat chef_config.json | jq -r '.organization'`
 export CHEF__USER_NAME=`cat chef_config.json | jq -r '.username'`
 
-# Create logging locations etc...
-sudo mkdir -p /etc/chef &&\
-    sudo mkdir -p /var/lib/chef &&\
-    sudo mkdir -p /var/log/chef 
-
-sudo chown -R ubuntu /etc/chef/ &&\
-sudo chown -R ubuntu /var/log/chef
-
-# Install Chef Client
-sudo wget https://omnitruck.chef.io/install.sh -O /etc/chef/install.sh &&\
-sudo bash /etc/chef/install.sh
+# Generate a random node name in the format `node-XXXXXXXX`
+export NODE_NAME=node-worker-$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 8 | head -n 1)
 
 # Copy Certs from S3 -> Local Trusted Certs, analagous to checking 
 # `knife ssl check -s https://infra-server/` and `knife ssl fetch ...`
@@ -49,11 +31,10 @@ sudo aws s3 cp s3://${CHEF__USER_NAME}-chef/pem/ /home/ubuntu/.ssh/ --recursive
 sudo touch /etc/chef/client.rb &&\
     sudo chmod 777 /etc/chef/client.rb
 
-# Generate a random node name in the format `node-XXXXXXXX`
-export NODE_NAME=node-worker-$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 8 | head -n 1)
-
 # Write to node log file...
-sudo touch /var/log/chef/node.log && sudo chmod 777 /var/log/chef/node.log && sudo echo $NODE_NAME >> /var/log/chef/node.log
+sudo touch /var/log/chef/node.log &&\
+    sudo chmod 777 /var/log/chef/node.log &&\
+    sudo echo $NODE_NAME >> /var/log/chef/node.log
 
 cat > '/etc/chef/client.rb' << EOF
 log_level                :debug
