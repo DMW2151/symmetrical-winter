@@ -13,15 +13,16 @@ resource "null_resource" "wait_for_chef_init" {
 
     interpreter = ["bash", "-c"]
     command     = <<-EOF
-    set -x -Ee -o pipefail;
+    set -x;
 
     # Small Buffer to Ensure Instance is Up - Could be a Null Resource
-    sleep 30;
-    
+    sleep 20;
+
+    uname -a;
     DEBIAN_FRONTEND=noninteractive
     
     wget http://security.ubuntu.com/ubuntu/pool/main/a/apt/apt_2.0.2_amd64.deb &&\
-      dpkg -i apt_2.0.2_amd64.deb
+    dpkg -i apt_2.0.2_amd64.deb
 
     apt-get update &&\
       apt-get install -y awscli 

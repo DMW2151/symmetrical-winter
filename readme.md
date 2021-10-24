@@ -1,3 +1,5 @@
+[![Core Infrastructure Up](https://github.com/DMW2151/symmetrical-winter/actions/workflows/infra-up.yaml/badge.svg)](https://github.com/DMW2151/symmetrical-winter/actions/workflows/infra-up.yaml)
+
 # About
 
 **[NOTE]: Branch `chef_a4g` has been made the default branch and will not undergo any further development during the judging period; other branches may show activity thru November 15th**
@@ -37,7 +39,9 @@ This repo has a CI job attached to it which deploys the infrastructure for the C
 
 Note that it is possible (but highly discouraged) to deploy from a local machine, the `local-exec` steps in the `terraform` pipeline are largely dependent on your environment. Deploying locally from an Ubuntu:20.04 VM would most closely replicate `hashicorp/terraform-github-actions`.
 
-The credentialing information passed to the repository requires an IAM role with a fairly high level of privilege. If your org doesn't maintain IAM roles with write level access to AWS services in this deployment (e.g. you use SSO temp credentials) these will need to be rotated out relatively often.
+The credentialing information passed to the repository requires an IAM role with a fairly high level of privilege. If your org doesn't maintain IAM roles with write level access to AWS services in this deployment (e.g. you use SSO temp credentials)these will need to be rotated out relatively often.
+
+As an additional benefit, because the CI is written to be idempotent, builds can be scheduled s.t. the instance and ASG nodes are always running on the most recent platform versions.
 
 ### AWS Assumptions
 
