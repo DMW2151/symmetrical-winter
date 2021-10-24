@@ -32,7 +32,7 @@ resource "null_resource" "wait_for_workstation_init" {
     else
       DEBIAN_FRONTEND=noninteractive
       wget http://security.ubuntu.com/ubuntu/pool/main/a/apt/apt_2.0.2_amd64.deb
-      sudo dpkg -i apt_1.4_amd64.deb
+      dpkg -i apt_1.4_amd64.deb
       apt-get update &&\
         apt-get install -y awscli 
     fi
