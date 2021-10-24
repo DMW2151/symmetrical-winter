@@ -390,6 +390,9 @@ jobs:
           if: always()
           run: |
             set -x;
+            echo $AWS_DEFAULT_REGION;
+            AWS_DEFAULT_REGION="us-east-1";
+            echo $AWS_DEFAULT_REGION;
             AWS__SG=`( echo '${{ steps.terraform.outputs.tf_actions_output }}' | jq -r '.ssh_group_id.value' )`
             aws ec2 revoke-security-group-ingress \
               --group-id $AWS__SG \
