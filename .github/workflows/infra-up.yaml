@@ -399,6 +399,15 @@ jobs:
             CHEF__WORKSTATION_SSH_KEY: ${{ secrets.CHEF__WORKSTATION_SSH_KEY }}
             CHEF__WORKSTATION_SSH_HOST: ${{ env.CHEF__WORKSTATION_IP }}
 
+        - name: Run Chef Client on Server Nodes
+          if: steps.changed-files.outputs.any_changed == 'true'
+          run: |
+            set -x;
+            ssh -A workstation knife ssh 'role:server' 'sudo chef-client' \
+              --ssh-user ubuntu \
+              --user ${{ env.chef_username }} \
+              --config /home/ubuntu/.chef/knife.rb
+              
         - name: Run Chef Client on Worker Nodes
           if: steps.changed-files.outputs.any_changed == 'true'
           run: |
@@ -408,14 +417,6 @@ jobs:
               --user ${{ env.chef_username }} \
               --config /home/ubuntu/.chef/knife.rb
             
-        - name: Run Chef Client on Server Nodes
-          if: steps.changed-files.outputs.any_changed == 'true'
-          run: |
-            set -x;
-            ssh -A workstation knife ssh 'role:server' 'sudo chef-client' \
-              --ssh-user ubuntu \
-              --user ${{ env.chef_username }} \
-              --config /home/ubuntu/.chef/knife.rb
 
         - name: Remove Actions IP from Security Group
           if: always()

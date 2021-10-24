@@ -31,7 +31,7 @@ c.JupyterHub.port = os.environ.get('HUB__SVC_PORT') or  8000
 c.SwarmSpawner.host_ip = "0.0.0.0"
 
 ## Data Persistance + Launch Image ##
-notebook_dir = f'/home/jovyan/{os.environ.get('HUB__NOTEBOOK_DIR')}'
+notebook_dir = f"/home/jovyan/{os.environ.get('HUB__NOTEBOOK_DIR')}"
 c.SwarmSpawner.notebook_dir = notebook_dir
 
 # Volume Persistance #
@@ -39,10 +39,13 @@ c.DockerSpawner.volumes = {
   '/efs/hub' : notebook_dir
 }
 
-# Launch Container...
-c.DockerSpawner.container_image = f"{os.environ.get('AWS__ACCOUNT_ID')}.dkr.{os.envion.get('AWS__REGION')}.amazonaws.com/{os.environ.get('HUB__ANALYSIS_CONTAINER')}"
+# Launch Container, prefer a private version...
+public_container = os.environ.get('HUB__PUBLIC_ANALYSIS_CONTAINER')
+private_container = f"{os.environ.get('AWS__ACCOUNT_ID')}.dkr.{os.environ.get('AWS__REGION')}.amazonaws.com/{os.environ.get('HUB__ANALYSIS_CONTAINER')}"
+
+c.DockerSpawner.container_image = private_container or public_container
 c.SwarmSpawner.container_spec = {
-    'Image': f"{os.environ.get('AWS__ACCOUNT_ID')}.dkr.{os.envion.get('AWS__REGION')}.amazonaws.com/{os.environ.get('HUB__ANALYSIS_CONTAINER')}"
+    'Image': private_container or public_container 
 }
 
 ## Resource Limits ##

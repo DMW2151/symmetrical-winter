@@ -1,6 +1,6 @@
 name 'jupyter'
 maintainer 'Dustin Wilson'
-maintainer_email 'dmw2151@columbia.com'
+maintainer_email 'redacted@mail.com'
 license 'All Rights Reserved'
 description 'Installs/Configures JupyterHub on Docker Swarm'
 long_description 'Installs/Configures JupyterHub on Docker Swarm'

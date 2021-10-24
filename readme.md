@@ -1,5 +1,3 @@
-[![Core Infrastructure Up](https://github.com/DMW2151/symmetrical-winter/actions/workflows/infra-up.yaml/badge.svg)](https://github.com/DMW2151/symmetrical-winter/actions/workflows/infra-up.yaml)
-
 # About
 
 **[NOTE]: Branch `chef_a4g` has been made the default branch and will not undergo any further development during the judging period; other branches may show activity thru November 15th**

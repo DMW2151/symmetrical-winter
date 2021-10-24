@@ -78,6 +78,12 @@ cookbook_file '/etc/jupyterhub/jupyterhub_config.py' do
     notifies :run, 'execute[docker-nginx-restart]'
 end
 
+cookbook_file '/etc/jupyterhub/dns.env' do
+    source 'hub/dns.env'
+    action :create
+    notifies :run, 'execute[docker-nginx-restart]'
+end
+
 cookbook_file '/etc/jupyterhub/hub.env' do
     source 'hub/hub.env'
     action :create
@@ -117,21 +123,18 @@ execute 'docker-nginx-start' do
         -p 443:443 \
         -p 80:80 \
         --detach \
-        --restart always\
-        -e EMAIL=dmw2151@columbia.edu \
-        -e URL=notebooks.maphub.dev \
+        --env-file /etc/jupyterhub/dns.env \
         -v nginx_volume:/config \
         --network hub \
         --mount type=bind,src=/etc/nginx/nginx.conf,dst=/config/nginx/site-confs/default \
         linuxserver/swag
     "
     action :run
-    not_if 'sudo docker ps ls | grep -E nginx'
+    not_if 'sudo docker ps | grep -E nginx'
 end
 
 # [TODO] Need to check that this is stable w.o a restart...
 execute 'docker-nginx-restart' do
     command "sudo docker restart nginx"
     action :run
-    not_if 'sudo docker ps | grep -vE nginx'
 end
