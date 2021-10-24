@@ -6,6 +6,7 @@ on:
       - '**.tf'
       - '**.rb'
       - '**.pkr.hcl'
+      - './workspaces'
 
   workflow_dispatch:
 
@@ -13,6 +14,9 @@ jobs:
 
   # Rebuild AMIs via Packer - Triggers Cascading Updates Through Entire System -> 
   # Will require (some) downtime while Terraform relaunches the Chef Server and JupyterHub
+  #
+  # [NOTE]: Because of this strategy - Only proper commits with changes to 
+  # `./packer/aws-ubuntu-chef-node.pkr.hcl` will get a rebuild, not workflow pushes
   packer-build-machine-imgs:
     runs-on: ubuntu-latest 
     strategy:
@@ -134,6 +138,29 @@ jobs:
           echo "CHEF__WORKSTATION_IP=$CHEF__WORKSTATION_IP" >> $GITHUB_ENV
           echo "SWARM__IP=$SWARM__IP" >> $GITHUB_ENV
   
+  ecr-update-images:
+
+    runs-on: ubuntu-latest 
+    env:
+      AWS__DEFAULT_REGION: 'us-east-1' 
+    strategy:
+      matrix:
+        image: [
+          'geospatial', 'jupyterserver'
+        ]
+
+    steps:
+
+      - uses: whoan/docker-build-with-cache-action@v5
+        with:
+          username: "${{ secrets.AWS_ACCESS_KEY_ID }}"  
+          password: "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+          registry: "${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS__DEFAULT_REGION }}.amazonaws.com"
+          image_name: ${{ matrix.image }}
+          context: ./jupyterhub/workspaces/${{ matrix.image }}/
+          image_tag: latest
+          push_image_and_stages: true
+
   chef-push-cookbooks:
 
     runs-on: ubuntu-latest 
@@ -149,6 +176,29 @@ jobs:
     steps:
 
       - uses: actions/checkout@v2
+
+      - name: Terraform Init
+        uses: hashicorp/terraform-github-actions@master
+        with:
+          tf_actions_version: ${{ env.tf_version }}
+          tf_actions_subcommand: 'init'
+          tf_actions_working_dir: ${{ env.tf_working_dir }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: Terraform Get Output
+        id: terraform
+        uses: hashicorp/terraform-github-actions@master
+        with:
+          tf_actions_version: ${{ env.tf_version }}
+          tf_actions_subcommand: 'output'
+          tf_actions_working_dir: ${{ env.tf_working_dir }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
       - name: Get Github Action IP
         id: ip
@@ -208,7 +258,7 @@ jobs:
             set -x;
             knife role run_list set server "recipe[jupyter::common-apt-get]", "recipe[jupyter::common-efs-dir]", "recipe[jupyter::hub-master-docker-init]", "recipe[jupyter::hub-master-jupyter]", "recipe[jupyter::hub-master-nginx]" --user $CHEF__USER_NAME --config /home/ubuntu/.chef/knife.rb
   
-      - name: Push Cookbooks
+      - name: Upload Cookbooks To Chef Server
         uses: appleboy/ssh-action@master
         env:
           CHEF__USER_NAME: ${{ env.chef_username }} 
