@@ -246,7 +246,7 @@ jobs:
           envs: CHEF__USER_NAME
           script: |
             set -x;
-            knife role run_list set worker "recipe[jupyter::hub-worker-join-swarm]", "recipe[jupyter::common-apt-get]", "recipe[jupyter::common-efs-dir]" --user $CHEF__USER_NAME --config /home/ubuntu/.chef/knife.rb
+            knife role run_list set worker "recipe[jupyter::common-apt-get]", "recipe[jupyter::common-efs-dir]", "recipe[jupyter::hub-worker-join-swarm]" --user $CHEF__USER_NAME --config /home/ubuntu/.chef/knife.rb
   
       - name: Update Server Role
         uses: appleboy/ssh-action@master
@@ -260,7 +260,7 @@ jobs:
           envs: CHEF__USER_NAME
           script: |
             set -x;
-            knife role run_list set server "recipe[jupyter::common-apt-get]", "recipe[jupyter::common-efs-dir]", "recipe[jupyter::hub-master-docker-init]", "recipe[jupyter::hub-master-jupyter]", "recipe[jupyter::hub-master-nginx]" --user $CHEF__USER_NAME --config /home/ubuntu/.chef/knife.rb
+            knife role run_list set server "recipe[jupyter::common-apt-get]", "recipe[jupyter::common-efs-dir]", "recipe[jupyter::hub-master-docker-init]", "recipe[jupyter::hub-master-jupyter]" --user $CHEF__USER_NAME --config /home/ubuntu/.chef/knife.rb
   
       - name: Upload Cookbooks To Chef Server
         uses: appleboy/ssh-action@master
@@ -308,6 +308,7 @@ jobs:
       ]
 
       steps:
+
         - uses: actions/checkout@v2
           with:
             fetch-depth: 0
@@ -322,9 +323,39 @@ jobs:
             files: |
               .rb$
 
+        - name: Terraform Init
+          uses: hashicorp/terraform-github-actions@master
+          with:
+            tf_actions_version: ${{ env.tf_version }}
+            tf_actions_subcommand: 'init'
+            tf_actions_working_dir: ${{ env.tf_working_dir }}
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      
+        - name: Terraform Get Output
+          id: terraform
+          uses: hashicorp/terraform-github-actions@master
+          with:
+            tf_actions_version: ${{ env.tf_version }}
+            tf_actions_subcommand: 'output'
+            tf_actions_working_dir: ${{ env.tf_working_dir }}
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
         - name: Get Github Action IP
           id: ip
           uses: haythem/public-ip@v1.2
+
+        - name: Set GitHub Environment Variables
+          run: |
+            set -x;
+            CHEF__WORKSTATION_IP=$(echo  '${{ steps.terraform.outputs.tf_actions_output  }}' | jq -r '.workstation_ip.value' ) 
+            echo "CHEF__WORKSTATION_IP=$CHEF__WORKSTATION_IP" >> $GITHUB_ENV
+            echo "AWS_DEFAULT_REGION=us-east-1" >> $GITHUB_ENV
 
         - name: Add Github Actions IP to Security Group
           run: |
@@ -346,7 +377,7 @@ jobs:
           with:
               ssh-private-key: ${{ secrets.CHEF__WORKSTATION_SSH_KEY }}
               
-        - name: Configure SSH
+        - name: Configure SSH Config
           if: steps.changed-files.outputs.any_changed == 'true'  
           run: |
             set -x;
@@ -366,7 +397,7 @@ jobs:
             CHEF__WORKSTATION_SSH_KEY: ${{ secrets.CHEF__WORKSTATION_SSH_KEY }}
             CHEF__WORKSTATION_SSH_HOST: ${{ env.CHEF__WORKSTATION_IP }}
 
-        - name: Run Client on Worker Nodes
+        - name: Run Chef Client on Worker Nodes
           if: steps.changed-files.outputs.any_changed == 'true'
           run: |
             set -x;
@@ -375,7 +406,7 @@ jobs:
               --user ${{ env.chef_username }} \
               --config /home/ubuntu/.chef/knife.rb
             
-        - name: Run Client on Server Nodes
+        - name: Run Chef Client on Server Nodes
           if: steps.changed-files.outputs.any_changed == 'true'
           run: |
             set -x;
