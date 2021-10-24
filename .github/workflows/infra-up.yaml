@@ -6,7 +6,7 @@ on:
       - '**.tf'
       - '**.rb'
       - '**.pkr.hcl'
-      - './workspaces'
+      - './workspaces/'
 
   workflow_dispatch:
 
