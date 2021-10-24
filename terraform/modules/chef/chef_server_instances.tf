@@ -24,6 +24,7 @@ resource "null_resource" "wait_for_chef_init" {
         apk add aws-cli
     else
       DEBIAN_FRONTEND=noninteractive
+      sudo dpkg -i apt_1.4_amd64.deb
       apt-get update &&\
         apt-get install -y awscli 
     fi
