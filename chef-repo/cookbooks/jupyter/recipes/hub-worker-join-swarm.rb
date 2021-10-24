@@ -15,6 +15,6 @@ execute 'docker_swarm_join' do
         sudo docker swarm join \
             --token $SVC__SWARM_TOKEN $SVC__SWARM_LEADER:2377
     "
-    not_if 'sudo docker info --format '{{.Swarm.LocalNodeState}}' | grep -iE ^active'
+    not_if "sudo docker info --format '{{.Swarm.LocalNodeState}}' | grep -iE ^active"
     action :run
 end
