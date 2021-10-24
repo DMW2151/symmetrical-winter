@@ -20,13 +20,9 @@ resource "null_resource" "wait_for_workstation_init" {
     # Small Buffer to Ensure Instance is Up - Could be a Null Resource
     sleep 30;
     
-    export isubuntu=$(uname -a | grep -iE ubuntu)
-    
-    if [ ! -z "$isubuntu" ]; then
-      DEBIAN_FRONTEND=noninteractive
-      apt-get update &&\
-        apt-get install -y awscli 
-    fi
+    DEBIAN_FRONTEND=noninteractive
+    apt-get update &&\
+      apt-get install -y awscli 
     
     command_id=`(aws ssm send-command --document-name ${aws_ssm_document.cloud_init_wait.arn} --instance-ids ${aws_instance.chef-workstation.id} --output text --query "Command.CommandId")`
     

@@ -19,11 +19,9 @@ resource "null_resource" "wait_for_chef_init" {
     sleep 30;
     export isubuntu=$(uname -a | grep -iE ubuntu)
     
-    if [ ! -z "$ubuntu" ]; then
-      DEBIAN_FRONTEND=noninteractive
-      apt-get update &&\
-        apt-get install -y awscli 
-    fi
+    DEBIAN_FRONTEND=noninteractive
+    apt-get update &&\
+      apt-get install -y awscli 
       
     export command_id=`(aws ssm send-command --document-name ${aws_ssm_document.cloud_init_wait.arn} --instance-ids ${aws_instance.chef-server.id} --output text --query "Command.CommandId")`
     
