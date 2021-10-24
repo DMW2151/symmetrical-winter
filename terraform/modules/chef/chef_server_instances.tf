@@ -20,7 +20,12 @@ resource "null_resource" "wait_for_chef_init" {
     export isalpine=$(uname -a | grep -iE alpine)
 
     if [ ! -z "$isalpine" ]; then
-      apk update && apk add aws-cli
+      apk update &&\
+        apk add aws-cli
+    else
+      DEBIAN_FRONTEND=noninteractive
+      apt-get update &&\
+        apt-get install -y awscli 
     fi
     
     export command_id=`(aws ssm send-command --document-name ${aws_ssm_document.cloud_init_wait.arn} --instance-ids ${aws_instance.chef-server.id} --output text --query "Command.CommandId")`
