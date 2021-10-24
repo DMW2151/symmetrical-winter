@@ -198,12 +198,12 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-       - name: Set GitHub Environment Variables
-         run: |
-            set -x;
-            CHEF__WORKSTATION_IP=$(echo  '${{ steps.terraform.outputs.tf_actions_output  }}' | jq -r '.workstation_ip.value' ) 
-            echo "CHEF__WORKSTATION_IP=$CHEF__WORKSTATION_IP" >> $GITHUB_ENV
-            echo "AWS_DEFAULT_REGION=us-east-1" >> $GITHUB_ENV
+      - name: Set GitHub Environment Variables
+        run: |
+          set -x;
+          CHEF__WORKSTATION_IP=$(echo  '${{ steps.terraform.outputs.tf_actions_output  }}' | jq -r '.workstation_ip.value' ) 
+          echo "CHEF__WORKSTATION_IP=$CHEF__WORKSTATION_IP" >> $GITHUB_ENV
+          echo "AWS_DEFAULT_REGION=us-east-1" >> $GITHUB_ENV
 
       - name: Get Github Action IP
         id: ip
