@@ -27,7 +27,6 @@ provider "aws" {
   profile = "dmw2151"
 }
 
-
 data "aws_caller_identity" "current" {}
 
 module "chef" {

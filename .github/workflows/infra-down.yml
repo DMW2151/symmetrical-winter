@@ -1,4 +1,4 @@
-name: Core Infrastructure Down (Terraform)
+name: Core Infrastructure Down (Terraform Only)
 
 on:
   workflow_dispatch:
@@ -39,12 +39,13 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-      - name: Terraform Apply - All
+      - name: Terraform Destroy - All
         uses: hashicorp/terraform-github-actions@master
         with:
           tf_actions_version: ${{ env.tf_version }}
           tf_actions_subcommand: 'destroy'
           tf_actions_working_dir: ${{ env.tf_working_dir }}
+          args: '-var="deployer_ip=${{ secrets.CHEF_SSH_VPC_CIDR }}"'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
