@@ -31,7 +31,7 @@ c.JupyterHub.port = os.environ.get('HUB__SVC_PORT') or  8000
 c.SwarmSpawner.host_ip = "0.0.0.0"
 
 ## Data Persistance + Launch Image ##
-notebook_dir = os.environ.get('NOTEBOOK_DIR') or '/home/jovyan/'
+notebook_dir = f'/home/jovyan/{os.environ.get('HUB__NOTEBOOK_DIR')}'
 c.SwarmSpawner.notebook_dir = notebook_dir
 
 # Volume Persistance #
@@ -39,13 +39,13 @@ c.DockerSpawner.volumes = {
   '/efs/hub' : notebook_dir
 }
 
-c.DockerSpawner.container_image = os.environ.get('HUB__ANALYSIS_CONTAINER') or 'dmw2151/geo:latest'
-
+# Launch Container...
+c.DockerSpawner.container_image = f"{os.environ.get('AWS__ACCOUNT_ID')}.dkr.{os.envion.get('AWS__REGION')}.amazonaws.com/{os.environ.get('HUB__ANALYSIS_CONTAINER')}"
 c.SwarmSpawner.container_spec = {
-    'Image': os.environ.get('HUB__ANALYSIS_CONTAINER') or 'dmw2151/geo:latest',
+    'Image': f"{os.environ.get('AWS__ACCOUNT_ID')}.dkr.{os.envion.get('AWS__REGION')}.amazonaws.com/{os.environ.get('HUB__ANALYSIS_CONTAINER')}"
 }
 
 ## Resource Limits ##
-c.Spawner.mem_limit = '2G'
-c.Spawner.cpu_limit = 0.30 
+c.Spawner.mem_limit = os.environ.get('HUB__SPAWNER_MEM_LIMIT') or '1G'
+c.Spawner.cpu_limit = os.environ.get('HUB__SPAWNER_CPU_LIMIT') or 0.30 
 

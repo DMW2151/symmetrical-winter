@@ -18,3 +18,13 @@ execute 'docker_swarm_join' do
     not_if "sudo docker info --format '{{.Swarm.LocalNodeState}}' | grep -iE ^active"
     action :run
 end
+
+# Pre-Pull - Minimize Risk of Timeout on Container Launch
+execute 'pull_analysis_notebook' do 
+    command "
+        AWS__ACCOUNT_ID=$(aws sts get-caller-identity | jq -r '.Account')
+        AWS__REGION=$(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | jq .region -r)
+        sudo docker pull $AWS__ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/geospatial
+    "
+    action :run
+end

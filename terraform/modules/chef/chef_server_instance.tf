@@ -17,19 +17,14 @@ resource "null_resource" "wait_for_chef_init" {
 
     # Small Buffer to Ensure Instance is Up - Could be a Null Resource
     sleep 30;
-    export isalpine=$(uname -a | grep -iE alpine)
-
-    if [ ! -z "$isalpine" ]; then
-      apk update &&\
-        apk add aws-cli
-    else
+    export isubuntu=$(uname -a | grep -iE ubuntu)
+    
+    if [ ! -z "$ubuntu" ]; then
       DEBIAN_FRONTEND=noninteractive
-      wget http://security.ubuntu.com/ubuntu/pool/main/a/apt/apt_2.0.2_amd64.deb
-      dpkg -i apt_2.0.2_amd64.deb
       apt-get update &&\
         apt-get install -y awscli 
     fi
-    
+      
     export command_id=`(aws ssm send-command --document-name ${aws_ssm_document.cloud_init_wait.arn} --instance-ids ${aws_instance.chef-server.id} --output text --query "Command.CommandId")`
     
     # From experience...that chef server init takes 10 min to init on a t3.medium - Now Using Packer - Leave this 

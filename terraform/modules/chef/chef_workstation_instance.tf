@@ -19,17 +19,11 @@ resource "null_resource" "wait_for_workstation_init" {
 
     # Small Buffer to Ensure Instance is Up - Could be a Null Resource
     sleep 30;
-    export isalpine=$(uname -a | grep -iE alpine)
-
-    uname -a
-
-    if [ ! -z "$isalpine" ]; then
-      apk update &&\
-        apk add aws-cli
-    else
+    
+    export isubuntu=$(uname -a | grep -iE ubuntu)
+    
+    if [ ! -z "$ubuntu" ]; then
       DEBIAN_FRONTEND=noninteractive
-      wget http://security.ubuntu.com/ubuntu/pool/main/a/apt/apt_2.0.2_amd64.deb
-      dpkg -i apt_2.0.2_amd64.deb
       apt-get update &&\
         apt-get install -y awscli 
     fi
@@ -53,8 +47,8 @@ resource "null_resource" "wait_for_workstation_init" {
       
       # [TODO][WARN] Kill the Instance If UserData Can't Get Brought Up - Keeps tf state Clean
       # This is pretty ugly, but if cloud init hangs or fails it taints the TF state file...
-      # aws ec2 terminate-instances \
-      #  --instance-ids ${aws_instance.chef-workstation.id}
+      aws ec2 terminate-instances \
+       --instance-ids ${aws_instance.chef-workstation.id}
       exit 1
     fi;
 

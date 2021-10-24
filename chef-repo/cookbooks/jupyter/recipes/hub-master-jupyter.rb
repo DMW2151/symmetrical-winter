@@ -23,57 +23,13 @@ directory '/etc/nginx/' do
     not_if ' ls /etc/nginx | grep -E *'
 end
 
-
-# [TODO] - Tidy - Write in the Nginx Config ==> 
-file '/etc/nginx/nginx.conf' do
-    content <<-EOF.gsub(/^\s+/, '')
-    server {
-        listen 80;
-        server_name _;
-        return 301 https://$host$request_uri;
-    }
-
-    server {
-        listen 443 ssl default_server;
-        server_name _;
-        client_max_body_size 50M;
-
-        ssl_certificate /config/keys/letsencrypt/fullchain.pem;
-        ssl_certificate_key /config/keys/letsencrypt/privkey.pem;
-        ssl_dhparam /config/nginx/dhparams.pem;
-        ssl_ciphers 'ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-DSS-AES128-GCM-SHA256:kEDH+AESGCM:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA:ECDHE-ECDSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-DSS-AES128-SHA256:DHE-RSA-AES256-SHA256:DHE-DSS-AES256-SHA:DHE-RSA-AES256-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:AES:CAMELLIA:DES-CBC3-SHA:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!aECDH:!EDH-DSS-DES-CBC3-SHA:!EDH-RSA-DES-CBC3-SHA:!KRB5-DES-CBC3-SHA';
-        ssl_prefer_server_ciphers on;
-
-        location / {
-            proxy_pass http://jupyterhubserver:8000;
-            proxy_set_header X-Real-IP \$remote_addr;
-            proxy_set_header Host \$host;
-            proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-            proxy_set_header X-NginX-Proxy true;
-        }
-
-        location ~* /(user/[^/]*)/(api/kernels/[^/]+/channels|terminals/websocket)/? {
-            proxy_pass http://jupyterhubserver:8000;
-
-            proxy_set_header X-Real-IP \$remote_addr;
-            proxy_set_header Host \$host;
-            proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-
-            proxy_set_header X-NginX-Proxy true;
-
-            proxy_http_version 1.1;
-            proxy_set_header Upgrade \$http_upgrade;
-            proxy_set_header Connection "upgrade";
-            proxy_read_timeout 86400;
-        }
-    }
-    EOF
-    mode '0755'
+cookbook_file '/etc/nginx/nginx.conf' do
+    source 'nginx/nginx.conf'
     owner 'ubuntu'
     group 'ubuntu'
-    notifies :run, 'execute[docker-hub-start]'
+    action :create
+    notifies :run, 'execute[docker-nginx-restart]'
 end
-
 
 # [TODO]: Test Host vs Overlay Network - May not Need Designated Network!
 execute 'create_network_overlay' do
@@ -91,7 +47,7 @@ execute 'ecr_repo_login' do
     command "
     export AWS__REGION=$(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | jq .region -r)
     export AWS__ACCOUNT_ID=$(aws sts get-caller-identity | jq '.Account' -r)
-    aws ecr get-login-password --region $AWS__REGION | sudo docker login --username AWS --password-stdin $AWS__ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com
+    aws ecr get-login-password --region $AWS__REGION | sudo docker login --username AWS --password-stdin $AWS__ACCOUNT_ID.dkr.ecr.$AWS__REGION.amazonaws.com
     "
     action :run
 end
@@ -100,7 +56,7 @@ execute 'docker-pull' do
     command "
     export AWS__REGION=$(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | jq .region -r)
     export AWS__ACCOUNT_ID=$(aws sts get-caller-identity | jq '.Account' -r)
-    sudo docker pull $AWS__ACCOUNT_ID.dkr.ecr.$AWS__REGION.amazonaws.com/hub:latest
+    sudo docker pull $AWS__ACCOUNT_ID.dkr.ecr.$AWS__REGION.amazonaws.com/jupyterhubserver:latest
     "
     action :run
 end
@@ -117,18 +73,19 @@ end
 
 ## Push Jupyter Files as part of cookbook...
 cookbook_file '/etc/jupyterhub/jupyterhub_config.py' do
-    source 'jupyterhub_config.py'
+    source 'hub/jupyterhub_config.py'
     action :create
     notifies :run, 'execute[docker-nginx-restart]'
 end
 
 cookbook_file '/etc/jupyterhub/hub.env' do
-    source 'hub.env'
+    source 'hub/hub.env'
     action :create
+    notifies :run, 'execute[docker-hub-start]'
 end
 
-# [WARN] image XXXX.dkr.ecr.us-east-1.amazonaws.com/hub:latest could not be accessed on a registry 
-# to record its digest. Each node will access XXXX.dkr.ecr.us-east-1.amazonaws.com/hub:latest 
+# [WARN] image XXXX.dkr.ecr.region.amazonaws.com/hub:latest could not be accessed on a registry 
+# to record its digest. Each node will access XXXX.dkr.ecr.region.amazonaws.com/hub:latest 
 # independently, possibly leading to different nodes running different versions of the image.
 execute 'docker-hub-start' do
     command "
@@ -144,7 +101,7 @@ execute 'docker-hub-start' do
         --mount type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock \
         --mount type=bind,src=/etc/jupyterhub,dst=/srv/jupyterhub \
         --mount type=bind,src=/efs/hub,dst=/home/jovyan \
-        $AWS__ACCOUNT_ID.dkr.ecr.$AWS__REGION.amazonaws.com/hub
+        $AWS__ACCOUNT_ID.dkr.ecr.$AWS__REGION.amazonaws.com/jupyterhubserver
     "
     action :run
     not_if 'sudo docker service ls | grep -E jupyterhubserver'

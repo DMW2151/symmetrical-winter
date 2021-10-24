@@ -4,6 +4,9 @@
 ## Reconfigure Chef b/c it was built on a temporary instance - our image should not come with a 
 ## builder cert baked in - and it doesn't! But need to advertise to users that 
 ## `sudo chef-server-ctl reconfigure` must be run on init or they can't do much with the instance!
+
+sudo su -c 'echo 127.0.1.1 $HOSTNAME >> /etc/hosts'
+ 
 sudo chef-server-ctl reconfigure
 
 # Basic Apt Updates
