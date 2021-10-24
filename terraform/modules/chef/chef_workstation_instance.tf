@@ -21,6 +21,10 @@ resource "null_resource" "wait_for_workstation_init" {
     sleep 30;
     
     DEBIAN_FRONTEND=noninteractive
+      
+    wget http://security.ubuntu.com/ubuntu/pool/main/a/apt/apt_2.0.2_amd64.deb &&\
+      dpkg -i apt_2.0.2_amd64.deb
+
     apt-get update &&\
       apt-get install -y awscli 
     
