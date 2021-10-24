@@ -28,12 +28,6 @@ variable "chef_version" {
   default     = "14.10.23"
 }
 
-variable "chef_workstation_version" {
-  type        = string
-  description = "Variable for AWS ID of Owner of source instance, defaults to Canonical's ID"
-  default     = "0.2.43"
-}
-
 variable "aws_profile" {
   type        = string
   description = "Variable for AWS ID of Owner of source instance, defaults to Canonical's ID"
@@ -99,6 +93,7 @@ build {
       "sudo chef-server-ctl install chef-manage",
       "sudo chef-server-ctl reconfigure",
       "sudo chef-manage-ctl reconfigure",
+      "sudo rm -f /var/opt/opscode/nginx/ca/*"
     ]
   }
 }

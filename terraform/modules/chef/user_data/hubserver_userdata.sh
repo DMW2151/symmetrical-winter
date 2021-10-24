@@ -33,12 +33,9 @@ sudo touch /var/log/chef/node.log &&\
     sudo chmod 777 /var/log/chef/node.log &&\
     sudo echo $NODE_NAME >> /var/log/chef/node.log
 
-# Install Chef Client
-sudo wget https://omnitruck.chef.io/install.sh -O /etc/chef/install.sh &&\
-sudo bash /etc/chef/install.sh
-
 # Copy Certs from S3 -> Local Trusted Certs, analagous to checking 
 # `knife ssl check -s https://infra-server/` and `knife ssl fetch ...`
+# Nodes must trust Chef server
 sudo aws s3 cp s3://${CHEF__USER_NAME}-chef/nginx/ /etc/chef/trusted_certs/ --recursive &&\
 sudo rm /etc/chef/trusted_certs/dhparams.pem
 

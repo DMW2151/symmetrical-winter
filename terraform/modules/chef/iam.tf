@@ -80,7 +80,7 @@ data "aws_iam_policy" "ssm_mgmt" {
 }
 
 resource "aws_iam_policy" "ecr_read_only_plus" {
-  name = "AmazonElasticContainerRegistryPublicReadOnly"
+  name = "AmazonElasticContainerRegistryPrivateReadPlus"
 
   policy = jsonencode({
     "Version": "2012-10-17",
@@ -122,6 +122,6 @@ resource "aws_iam_role" "chef_server_profile" {
 }
 
 resource "aws_iam_instance_profile" "chef_server_profile" {
-  name = "chef_server_instance_profile"
+  name = "chef_core_server_instance_profile"
   role = aws_iam_role.chef_server_profile.name
 }

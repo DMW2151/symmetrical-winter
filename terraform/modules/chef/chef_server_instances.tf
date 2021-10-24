@@ -1,5 +1,11 @@
 # Configures core EC2 Instance that hosts the Chef Server
 
+# Resource: https://registry.terraform.io/providers/hashicorp/template/latest/docs/data-sources/file
+data "template_file" "chef-infra-server-userdata" {
+  template = filebase64("./../modules/chef/user_data/build_chef_server.sh")
+}
+
+
 resource "null_resource" "wait_for_chef_init" {
 
   # Suggestion: https://rpadovani.com/terraform-cloudinit
@@ -9,33 +15,19 @@ resource "null_resource" "wait_for_chef_init" {
     command     = <<-EOF
     set -x -Ee -o pipefail;
 
+    # Small Buffer to Ensure Instance is Up - Could be a Null Resource
     sleep 30;
+    export isalpine=$(uname -a | grep -iE alpine)
 
-    apk update && apk add aws-cli
+    if [ ! -z "$isalpine" ]; then
+      apk update && apk add aws-cli
+    fi
     
-    export AWS_DEFAULT_REGION="${var.default_region}"
-    aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID --profile default
-    aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY --profile default
-    aws configure set region $AWS_DEFAULT_REGION --profile default
-
     export command_id=`(aws ssm send-command --document-name ${aws_ssm_document.cloud_init_wait.arn} --instance-ids ${aws_instance.chef-server.id} --output text --query "Command.CommandId")`
     
-    # `aws ssm wait command-executed` polls on a fixed interval of 5s for 20x; no 
-    # way to extend beyond 100s interval
-    
-    # From experience...that chef server init takes 5+ min always, give up to 100 * 10 == 20 min to init!
-    for i in {0..10}
-    do
-      if ! aws ssm wait command-executed --command-id $command_id --instance-id ${aws_instance.chef-server.id}; then
-        echo "SSM Call #$i - Still Waiting on Chef Init"
-        aws ssm get-command-invocation \
-          --command-id $command_id \
-          --instance-id ${aws_instance.chef-server.id} \
-          --query StandardOutputContent
-      fi;
-    done
-
-    # Last Attempt!
+    # From experience...that chef server init takes 10 min to init on a t3.medium - Now Using Packer - Leave this 
+    # Block In, but do not loop over checks. `aws ssm wait command-executed` polls on a fixed interval of 5s for 20x 
+    # if does not init in 100s, assume it's a lost cause! 
     if ! aws ssm wait command-executed --command-id $command_id --instance-id ${aws_instance.chef-server.id}; then
 
       aws ssm get-command-invocation \
@@ -48,8 +40,11 @@ resource "null_resource" "wait_for_chef_init" {
         --instance-id ${aws_instance.chef-server.id} \
         --query StandardErrorContent
       
-      # Kill the Instance If UserData Can't Get Brought Up - Keeps tf state Clean
-      aws ec2 terminate-instances --instance-ids ${aws_instance.chef-server.id}
+      # [TODO][WARN] Kill the Instance If UserData Can't Get Brought Up - Keeps tf state Clean
+      # This is pretty ugly, but if cloud init hangs or fails it taints the TF state file
+      aws ec2 terminate-instances \
+        --instance-ids ${aws_instance.chef-server.id}
+
       exit 1;
     fi;
 
@@ -62,13 +57,38 @@ resource "null_resource" "wait_for_chef_init" {
 
 }
 
+data "aws_ami" "ubuntu-chef-server" {
+  most_recent = true
+
+  filter {
+    name   = "name"
+    values = [
+      "ubuntu-*-chef-server-core-*"
+    ]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  filter {
+    name   = "root-device-type"
+    values = ["ebs"]
+  }
+
+  owners = [
+    var.aws_account_id
+  ]
+}
+
 # Need an instance that can be used as the Chef Server
 # Resource: https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/instance
 resource "aws_instance" "chef-server" {
 
   # Basic Config - Use t3.medium running Ubuntu:20.04 w. VCPU + 4GB Memory + Configurable Storage (20GB)
   # Should be fine for our very basic Chef server deployment...
-  ami           = "ami-09e67e426f25ce0d7"
+  ami           = data.aws_ami.ubuntu-chef-server.image_id
   instance_type = "t3.medium"
   ebs_optimized = true
 
@@ -115,12 +135,4 @@ resource "aws_instance" "chef-server" {
     Module = "Chef Server - Core Networking"
   }
 
-}
-
-# Resource: https://registry.terraform.io/providers/hashicorp/template/latest/docs/data-sources/file
-data "template_file" "chef-infra-server-userdata" {
-  template = filebase64("./../modules/chef/user_data/build_chef_server.sh")
-  vars = {
-    aws_default_region = "${var.default_region}"
-  }
 }

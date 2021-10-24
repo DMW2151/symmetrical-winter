@@ -23,16 +23,10 @@ variable "ubuntu_version" {
   default     = "20.04"
 }
 
-variable "chef_version" {
-  type        = string
-  description = "Variable for AWS ID of Owner of source instance, defaults to Canonical's ID"
-  default     = "14.10.23"
-}
-
 variable "chef_workstation_version" {
   type        = string
   description = "Variable for AWS ID of Owner of source instance, defaults to Canonical's ID"
-  default     = "0.2.43"
+  default     = "21.9.613"
 }
 
 variable "aws_profile" {
@@ -54,7 +48,7 @@ variable "aws_region" {
 //
 source "amazon-ebs" "ubuntu-chef-workstation" {
 
-  ami_name      = "ubuntu-${var.ubuntu_version}-chef-workstation-${var.chef_version}"
+  ami_name      = "ubuntu-${var.ubuntu_version}-chef-workstation-${var.chef_workstation_version}"
   ssh_username  = "ubuntu"
   instance_type = "t3.medium"
   region        = "${var.aws_region}"
@@ -88,11 +82,11 @@ source "amazon-ebs" "ubuntu-chef-workstation" {
 // 
 // This build takes 
 build {
-  name        = "ubuntu-chef-nodes"
+  name        = "ubuntu-chef-workstation"
   description = "This build creates images for Ubuntu w. Chef Server and Chef Manage"
 
   sources = [
-    "source.amazon-ebs.ubuntu-chef-nodes"
+    "source.amazon-ebs.ubuntu-chef-workstation"
   ]
 
   provisioner "shell" {

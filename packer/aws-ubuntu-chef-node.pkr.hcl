@@ -23,18 +23,6 @@ variable "ubuntu_version" {
   default     = "20.04"
 }
 
-variable "chef_version" {
-  type        = string
-  description = "Variable for AWS ID of Owner of source instance, defaults to Canonical's ID"
-  default     = "14.10.23"
-}
-
-variable "chef_workstation_version" {
-  type        = string
-  description = "Variable for AWS ID of Owner of source instance, defaults to Canonical's ID"
-  default     = "0.2.43"
-}
-
 variable "aws_profile" {
   type        = string
   description = "Variable for AWS ID of Owner of source instance, defaults to Canonical's ID"
@@ -49,9 +37,9 @@ variable "aws_region" {
 
 
 // Source  - Client Nodes
-source "amazon-ebs" "ubuntu-chef-nodes" {
+source "amazon-ebs" "ubuntu-chef-node" {
 
-  ami_name      = "ubuntu-${var.ubuntu_version}-chef-client-${var.chef_version}"
+  ami_name      = "ubuntu-${var.ubuntu_version}-chef-client-latest"
   ssh_username  = "ubuntu"
   instance_type = "t3.medium"
   region        = "${var.aws_region}"
@@ -89,11 +77,11 @@ source "amazon-ebs" "ubuntu-chef-nodes" {
 // See Reference: https://docs.chef.io/install_bootstrap/#unattended-installs
 //
 build {
-  name        = "ubuntu-chef-nodes"
+  name        = "ubuntu-chef-node"
   description = "This build creates images for Ubuntu w. Chef Server and Chef Manage"
 
   sources = [
-    "source.amazon-ebs.ubuntu-chef-nodes"
+    "source.amazon-ebs.ubuntu-chef-node"
   ]
 
   provisioner "shell" {

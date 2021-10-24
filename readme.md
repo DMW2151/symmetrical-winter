@@ -46,6 +46,8 @@ I tried to develop everything from scratch, but a few "shortcuts" were taken, at
   
 - A AWS S3 BUCKET named `${user}-chef`, this bucket is used as a Terraform backend and for sharing some configuration files throughout the system setup.
   
+- An SSH key named `public-jump-1` on your account (regrettably, it is a common key for all instances in this demo); this is clearly something to tighten-down for a proper deployment.
+
 - Excludes hardening + (a lot) of security precautions to take, some of the more restrictive hardening suggestions work against this deployment's Jupyter NB assumptions, I would need to do a significant amount of additional development to harden the ASG nodes appropriately.
 
 ## TODO/Extras
@@ -63,3 +65,10 @@ I tried to develop everything from scratch, but a few "shortcuts" were taken, at
 
 - [ ] Docker pull can be slow for large images, mostly for data science, consider pulling the working container as part of recipe
   
+
+
+## What you Get
+
+`https://ec2-xxx-xxx-xxx-xxx.compute-1.amazonaws.com`
+
+`

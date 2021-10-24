@@ -5,12 +5,39 @@ data "template_file" "worker-userdata" {
   template = filebase64("./../modules/chef/user_data/worker_userdata.sh")
 }
 
+# Select the AMI that We have Created via Packer - See `./packer`
+data "aws_ami" "ubuntu-chef-client" {
+  most_recent = true
+
+  filter {
+    name   = "name"
+    values = [
+      "ubuntu-*-chef-client-*"
+    ]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  filter {
+    name   = "root-device-type"
+    values = ["ebs"]
+  }
+
+  owners = [
+    var.aws_account_id
+  ]
+}
+
+
 # No EKSCTL magic here  nodes odn't auto update!
 # Resource: https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/launch_configuration
 resource "aws_launch_configuration" "chef-workers" {
 
   # Basic - NOTE - Buying from Spot Market!
-  image_id      = "ami-09e67e426f25ce0d7"
+  image_id      = data.aws_ami.ubuntu-chef-client.image_id
   instance_type = "t3.small"
   spot_price    = "0.04"
 

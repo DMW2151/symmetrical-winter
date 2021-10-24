@@ -20,6 +20,7 @@ export NODE_NAME=node-worker-$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 8
 
 # Copy Certs from S3 -> Local Trusted Certs, analagous to checking 
 # `knife ssl check -s https://infra-server/` and `knife ssl fetch ...`
+# Nodes must trust Chef server
 sudo aws s3 cp s3://${CHEF__USER_NAME}-chef/nginx/ /etc/chef/trusted_certs/ --recursive &&\
 sudo rm /etc/chef/trusted_certs/dhparams.pem
 

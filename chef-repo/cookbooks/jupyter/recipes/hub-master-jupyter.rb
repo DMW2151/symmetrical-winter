@@ -115,6 +115,17 @@ execute 'docker_nginx_volume' do
     action :run
 end
 
+## Push Jupyter Files as part of cookbook...
+cookbook_file '/etc/jupyterhub/jupyterhub_config.py' do
+    source 'jupyterhub_config.py'
+    action :create
+    notifies :run, 'execute[docker-nginx-restart]'
+end
+
+cookbook_file '/etc/jupyterhub/hub.env' do
+    source 'hub.env'
+    action :create
+end
 
 # [WARN] image XXXX.dkr.ecr.us-east-1.amazonaws.com/hub:latest could not be accessed on a registry 
 # to record its digest. Each node will access XXXX.dkr.ecr.us-east-1.amazonaws.com/hub:latest 
@@ -128,6 +139,7 @@ execute 'docker-hub-start' do
         --detach \
         -p 8000:8000 \
         --network hub \
+        --env-file /etc/jupyterhub/hub.env \
         --constraint 'node.role == manager' \
         --mount type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock \
         --mount type=bind,src=/etc/jupyterhub,dst=/srv/jupyterhub \
@@ -136,7 +148,7 @@ execute 'docker-hub-start' do
     "
     action :run
     not_if 'sudo docker service ls | grep -E jupyterhubserver'
-    notifies :run, 'execute[docker-hub-start]'
+    notifies :run, 'execute[docker-nginx-restart]'
 end
 
 # Start Nginx Container w. Automatic SSL from Certbot
@@ -157,5 +169,12 @@ execute 'docker-nginx-start' do
         linuxserver/swag
     "
     action :run
-    not_if 'sudo docker service ls | grep -E nginx'
+    not_if 'sudo docker ps ls | grep -E nginx'
+end
+
+# [TODO] Need to check that this is stable w.o a restart...
+execute 'docker-nginx-restart' do
+    command "sudo docker restart nginx"
+    action :run
+    not_if 'sudo docker ps | grep -vE nginx'
 end

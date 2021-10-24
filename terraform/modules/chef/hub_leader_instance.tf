@@ -12,7 +12,7 @@ resource "aws_instance" "hub-leader" {
 
   # Basic Config - Use t3.medium running Ubuntu:20.04 w. VCPU + 4GB Memory + Configurable Storage (20GB)
   # Should be fine for our very basic Chef server deployment...
-  ami           = "ami-09e67e426f25ce0d7"
+  ami           = data.aws_ami.ubuntu-chef-client.image_id
   instance_type = "t3.small"
   ebs_optimized = true
 
