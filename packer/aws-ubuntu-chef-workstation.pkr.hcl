@@ -10,11 +10,6 @@ packer {
 
 }
 
-// Build Locals...
-locals {  
-  timestamp = regex_replace(timestamp(), "[- TZ:]", "")
-}
-
 // Build Variables...
 variable "src_ami_owner" {
   type        = string
@@ -53,9 +48,13 @@ variable "aws_region" {
 }
 
 // Source - Workstation Nodes
+//
+// This build bakes the main Chef Workstation AMI - Creates an AMI with the specified Chef 
+// Workstation Version  on the specified Ubuntu Version. NOTE: Build is for X86_64 only.
+//
 source "amazon-ebs" "ubuntu-chef-workstation" {
 
-  ami_name      = "ubuntu-${var.ubuntu_version}-chef-client-core-${var.chef_version}-${local.timestamp}"
+  ami_name      = "ubuntu-${var.ubuntu_version}-chef-workstation-${var.chef_version}"
   ssh_username  = "ubuntu"
   instance_type = "t3.medium"
   region        = "${var.aws_region}"

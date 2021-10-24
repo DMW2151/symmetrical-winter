@@ -9,12 +9,6 @@ packer {
   }
 }
 
-
-// Build Locals...
-locals {  
-  timestamp = regex_replace(timestamp(), "[- TZ:]", "")
-}
-
 // Build Variables...
 variable "src_ami_owner" {
   type        = string
@@ -56,7 +50,7 @@ variable "aws_region" {
 // Source  - Chef Server
 source "amazon-ebs" "ubuntu-chef-server" {
 
-  ami_name      = "ubuntu-${var.ubuntu_version}-chef-server-core-${var.chef_version}-${local.timestamp}"
+  ami_name      = "ubuntu-${var.ubuntu_version}-chef-server-core-${var.chef_version}"
   ssh_username  = "ubuntu"
   instance_type = "t3.medium"
   region        = "${var.aws_region}"
