@@ -143,10 +143,14 @@ jobs:
     runs-on: ubuntu-latest 
     env:
       AWS__DEFAULT_REGION: 'us-east-1' 
+    needs: [
+      terraform-build-core-infra
+    ]
+
     strategy:
       matrix:
         image: [
-          'geospatial', 'jupyterserver'
+          'geospatial', 'jupyterhubserver'
         ]
 
     steps:
