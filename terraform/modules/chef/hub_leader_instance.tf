@@ -54,7 +54,6 @@ resource "aws_instance" "hub-leader" {
   }
 
   depends_on = [
-    null_resource.wait_for_workstation_init,
     aws_instance.chef-workstation
   ]
 

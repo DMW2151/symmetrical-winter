@@ -5,62 +5,6 @@ data "template_file" "chef-infra-server-userdata" {
   template = filebase64("./../modules/chef/user_data/build_chef_server.sh")
 }
 
-
-resource "null_resource" "wait_for_chef_init" {
-
-  # Suggestion: https://rpadovani.com/terraform-cloudinit
-  provisioner "local-exec" {
-
-    interpreter = ["bash", "-c"]
-    command     = <<-EOF
-    set -x;
-
-    # Small Buffer to Ensure Instance is Up - Could be a Null Resource
-    sleep 20;
-
-    uname -a;
-    DEBIAN_FRONTEND=noninteractive
-    
-    wget http://security.ubuntu.com/ubuntu/pool/main/a/apt/apt_2.0.2_amd64.deb &&\
-    dpkg -i apt_2.0.2_amd64.deb
-
-    apt-get update &&\
-      apt-get install -y awscli 
-      
-    export command_id=`(aws ssm send-command --document-name ${aws_ssm_document.cloud_init_wait.arn} --instance-ids ${aws_instance.chef-server.id} --output text --query "Command.CommandId")`
-    
-    # From experience...that chef server init takes 10 min to init on a t3.medium - Now Using Packer - Leave this 
-    # Block In, but do not loop over checks. `aws ssm wait command-executed` polls on a fixed interval of 5s for 20x 
-    # if does not init in 100s, assume it's a lost cause! 
-    if ! aws ssm wait command-executed --command-id $command_id --instance-id ${aws_instance.chef-server.id}; then
-
-      aws ssm get-command-invocation \
-        --command-id $command_id \
-        --instance-id ${aws_instance.chef-server.id} \
-        --query StandardOutputContent
-      
-      aws ssm get-command-invocation \
-        --command-id $command_id \
-        --instance-id ${aws_instance.chef-server.id} \
-        --query StandardErrorContent
-      
-      # [TODO][WARN] Kill the Instance If UserData Can't Get Brought Up - Keeps tf state Clean
-      # This is pretty ugly, but if cloud init hangs or fails it taints the TF state file
-      aws ec2 terminate-instances \
-        --instance-ids ${aws_instance.chef-server.id}
-
-      exit 1;
-    fi;
-
-    EOF
-  }
-
-  triggers = {
-    cluster_instance_ids = aws_instance.chef-server.id
-  }
-
-}
-
 data "aws_ami" "ubuntu-chef-server" {
   most_recent = true
 
@@ -132,6 +76,51 @@ resource "aws_instance" "chef-server" {
   metadata_options {
     http_endpoint = "enabled"
   }
+
+    # Suggestion: https://rpadovani.com/terraform-cloudinit
+  provisioner "local-exec" {
+
+    interpreter = ["/bin/bash", "-c"]
+    command     = <<-EOF
+    set -x;
+
+    # Small Buffer to Ensure Instance is Up - Could be a Null Resource
+    sleep 20;
+
+    uname -a;
+    DEBIAN_FRONTEND=noninteractive
+    
+    apt-get update &&\
+      apt-get install -y awscli 
+      
+    export command_id=`(aws ssm send-command --document-name ${aws_ssm_document.cloud_init_wait.arn} --instance-ids ${self.id} --output text --query "Command.CommandId")`
+    
+    # From experience...that chef server init takes 10 min to init on a t3.medium - Now Using Packer - Leave this 
+    # Block In, but do not loop over checks. `aws ssm wait command-executed` polls on a fixed interval of 5s for 20x 
+    # if does not init in 100s, assume it's a lost cause! 
+    if ! aws ssm wait command-executed --command-id $command_id --instance-id ${self.id}; then
+
+      aws ssm get-command-invocation \
+        --command-id $command_id \
+        --instance-id ${self.id} \
+        --query StandardOutputContent
+      
+      aws ssm get-command-invocation \
+        --command-id $command_id \
+        --instance-id ${self.id} \
+        --query StandardErrorContent
+      
+      # [TODO][WARN] Kill the Instance If UserData Can't Get Brought Up - Keeps tf state Clean
+      # This is pretty ugly, but if cloud init hangs or fails it taints the TF state file
+      aws ec2 terminate-instances \
+        --instance-ids ${self.id}
+
+      exit 1;
+    fi;
+
+    EOF
+  }
+
 
   # Tags
   tags = {
