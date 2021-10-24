@@ -47,7 +47,7 @@ jobs:
       # Build Artifacts
       - name: Build AMI
         uses: hashicorp/packer-github-actions@master
-        if: steps.changed-files-specific.outputs.any_changed == 'true'
+        if: steps.changed-files.outputs.any_changed == 'true'
         with:
           command: build
           arguments: "-color=false -on-error=cleanup -force"
@@ -58,8 +58,7 @@ jobs:
           AWS_DEFAULT_REGION: ${{ env.AWS__REGION }}
           PACKER_LOG: 1
       
-      
-  terraform-apply-chef-infra:
+  terraform-build-core-infra:
     runs-on: ubuntu-latest 
     env:
       tf_version: '1.0.3'
@@ -77,10 +76,6 @@ jobs:
       - name: Install Apt
         run: |
           sudo apt-get update -y && sudo apt-get install -y jq 
-      
-      - name: Get Github action IP
-        id: ip
-        uses: haythem/public-ip@v1.2
 
       - name: Terraform Init
         uses: hashicorp/terraform-github-actions@master
@@ -137,6 +132,64 @@ jobs:
           SWARM__IP=$(echo  '${{ steps.terraform.outputs.tf_actions_output  }}' | jq -r '.swarm_leader_ip.value' ) 
           echo "CHEF__WORKSTATION_IP=$CHEF__WORKSTATION_IP" >> $GITHUB_ENV
           echo "SWARM__IP=$SWARM__IP" >> $GITHUB_ENV
+  
+  # The JupyterHub depends on static configs in this repository to launch the Hub Server
+  # Push this content to the JupyterHub Server Instance
+  hub-push-static-config:
+
+    runs-on: ubuntu-latest 
+    env:
+      tf_version: '1.0.3'
+      tf_working_dir: ./terraform/chef/
+      tf_modules_dir: ./terraform/modules/**
+      chef_username: dmw2151
+    needs: [
+      terraform-build-core-infra
+    ]
+
+    - uses: actions/checkout@v2
+
+    - name: Get Github Action IP
+        id: ip
+        if: steps.changed-files.outputs.any_changed == 'true'
+        uses: haythem/public-ip@v1.2
+
+    - name: Add Github Actions IP to Security Group
+      run: |
+        set -x;
+        AWS__SG=`( echo '${{ steps.terraform.outputs.tf_actions_output }}' | jq -r '.ssh_group_id.value' )`
+        aws ec2 authorize-security-group-ingress \
+          --group-id $AWS__SG \
+          --protocol tcp \
+          --port 22 \
+          --cidr ${{ steps.ip.outputs.ipv4 }}/32
+          
+    - name: Copy Jupyter Config to Jupyter Hub Server
+      uses: appleboy/scp-action@master
+      with:
+        host: ${{ env.CHEF__WORKSTATION_IP }} 
+        username: "ubuntu"
+        port: 22
+        key: ${{ secrets.CHEF__WORKSTATION_SSH_KEY }}
+        overwrite: true
+        source: 'jupyterhub/cfg/**'
+        target: '/etc/jupyterhub'
+    
+    - name: Remove Actions IP from Security Group
+      if: always()
+      run: |
+        set -x;
+        AWS__SG=`( echo '${{ steps.terraform.outputs.tf_actions_output }}' | jq -r '.ssh_group_id.value' )`
+        aws ec2 revoke-security-group-ingress \
+          --group-id $AWS__SG \
+          --protocol tcp \
+          --port 22 \
+          --cidr ${{ steps.ip.outputs.ipv4 }}/32
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_DEFAULT_REGION: ${{ env.AWS_DEFAULT_REGION }}
+
 
   chef-push-cookbooks:
 
@@ -147,11 +200,13 @@ jobs:
       tf_modules_dir: ./terraform/modules/**
       chef_username: dmw2151
     needs: [
-      terraform-apply-chef-infra
+      terraform-build-core-infra
     ]
 
     steps:
-      
+
+      - uses: actions/checkout@v2
+
       - name: Copy Cookbook to WorkStation
         uses: appleboy/scp-action@master
         with:
@@ -217,12 +272,30 @@ jobs:
         tf_modules_dir: ./terraform/modules/**
         chef_username: dmw2151
       needs: [
-        terraform-apply-chef-infra
+        chef-push-cookbooks, hub-push-static-config
       ]
 
       steps:
+        - uses: actions/checkout@v2
+          with:
+            fetch-depth: 0
 
-        - name: Add Github Actions IP to Security group
+        # Get Changed Files and Check to See if Our Target File is in the ChangeSet
+        # Otherwise - ShortCircuit the Job and skip the remaining tasks w. conditional
+        # https://github.com/tj-actions/changed-files
+        - name: Get Changed Chef Files
+          id: changed-files
+          uses: tj-actions/changed-files@v11
+          with:
+            files: |
+              .rb$
+
+        - name: Get Github Action IP
+          id: ip
+          if: steps.changed-files.outputs.any_changed == 'true'
+          uses: haythem/public-ip@v1.2
+
+        - name: Add Github Actions IP to Security Group
           run: |
             set -x;
             AWS__SG=`( echo '${{ steps.terraform.outputs.tf_actions_output }}' | jq -r '.ssh_group_id.value' )`
@@ -237,15 +310,17 @@ jobs:
             AWS_DEFAULT_REGION: ${{ env.AWS_DEFAULT_REGION }}
         
         - name: Init SSH Forwarding Agent
+          if: steps.changed-files.outputs.any_changed == 'true'
           uses: webfactory/ssh-agent@v0.5.3
           with:
               ssh-private-key: ${{ secrets.CHEF__WORKSTATION_SSH_KEY }}
               
         - name: Configure SSH
+          if: steps.changed-files.outputs.any_changed == 'true'  
           run: |
+            set -x;
             mkdir -p ~/.ssh/
             echo "$CHEF__WORKSTATION_SSH_KEY" > ~/.ssh/workstation.key
-            echo "$SWARM__SSH_KEY" > ~/.ssh/workstation.key
             chmod 600 ~/.ssh/workstation.key
             cat >>~/.ssh/config <<END
             Host workstation
@@ -253,22 +328,15 @@ jobs:
               User $SSH_USER
               IdentityFile ~/.ssh/workstation.key
               StrictHostKeyChecking no
-
-            Host SwarmLeader
-              HostName $SWARM__SSH_HOST
-              User $SSH_USER
-              IdentityFile ~/.ssh/swarmleader.key
-              StrictHostKeyChecking no
             END
 
           env:
             SSH_USER: "ubuntu"
             CHEF__WORKSTATION_SSH_KEY: ${{ secrets.CHEF__WORKSTATION_SSH_KEY }}
             CHEF__WORKSTATION_SSH_HOST: ${{ env.CHEF__WORKSTATION_IP }}
-            SWARM__SSH_KEY: ${{ secrets.CHEF__WORKSTATION_SSH_KEY }} # TODO: These shouldn't be the same! 
-            SWARM__SSH_HOST: ${{ env.SWARM__IP }}
 
         - name: Run Client on Worker Nodes
+          if: steps.changed-files.outputs.any_changed == 'true'
           run: |
             set -x;
             ssh -A workstation knife ssh 'role:worker' 'sudo chef-client' \
@@ -277,6 +345,7 @@ jobs:
               --config /home/ubuntu/.chef/knife.rb
             
         - name: Run Client on Server Nodes
+          if: steps.changed-files.outputs.any_changed == 'true'
           run: |
             set -x;
             ssh -A workstation knife ssh 'role:server' 'sudo chef-client' \
@@ -285,6 +354,7 @@ jobs:
               --config /home/ubuntu/.chef/knife.rb
 
         - name: Remove Actions IP from Security Group
+          if: always()
           run: |
             set -x;
             AWS__SG=`( echo '${{ steps.terraform.outputs.tf_actions_output }}' | jq -r '.ssh_group_id.value' )`
@@ -297,4 +367,3 @@ jobs:
             AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
             AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
             AWS_DEFAULT_REGION: ${{ env.AWS_DEFAULT_REGION }}
-          if: always()

@@ -1,2 +1,2 @@
 .terraform*
-./chef_config.json
+terraform/modules/chef/config/chef_config.json
