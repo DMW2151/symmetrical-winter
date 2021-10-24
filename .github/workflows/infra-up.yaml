@@ -5,6 +5,7 @@ on:
     paths:
       - '**.tf'
       - '**.rb'
+      - '**.pkr.hcl'
 
   workflow_dispatch:
 
