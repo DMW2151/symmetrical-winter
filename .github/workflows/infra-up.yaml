@@ -25,7 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
-          fetch-depth: 0  # OR "2" -> To retrieve the preceding commit.
+          fetch-depth: 0
 
       # Get Changed Files and Check to See if Our Target File is in the ChangeSet
       # https://github.com/tj-actions/changed-files
@@ -33,30 +33,24 @@ jobs:
         id: changed-files
         uses: tj-actions/changed-files@v11
         with:
-
           files: |
             ${{ matrix.buildfile }}
-
-      - name: List all modified files
-        run: |
-          for file in ${{ steps.changed-files.outputs.all_modified_files }}; do
-            echo "$file was modified"
-          done
-        
+     
       # Validate templates
       - name: Validate Template
         uses: hashicorp/packer-github-actions@master
         with:
           command: validate
           arguments: -syntax-only
-          target: ./packer/.
-
+          target: ${{ matrix.buildfile }}
+      
       # Build Artifacts
-      - name: Build AMI - Chef WorkStation
+      - name: Build AMI
         uses: hashicorp/packer-github-actions@master
+        if: steps.changed-files-specific.outputs.any_changed == 'true'
         with:
           command: build
-          arguments: "-color=false -on-error=abort"
+          arguments: "-color=false -on-error=abort -force"
           target: ./packer/aws-ubuntu-chef.pkr.hcl
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}

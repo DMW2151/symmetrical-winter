@@ -1,4 +1,4 @@
-name: Core Infra Teardown
+name: Core Infrastructure Down (Terraform)
 
 on:
   workflow_dispatch:
