@@ -249,7 +249,7 @@ jobs:
         tf_modules_dir: ./terraform/modules/**
         chef_username: dmw2151
       needs: [
-        chef-push-cookbooks, hub-push-static-config
+        chef-push-cookbooks
       ]
 
       steps:
