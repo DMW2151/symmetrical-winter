@@ -46,8 +46,9 @@ We launch the service with options that tell the deployment to:
 
 - Use volumes that bind config files managed by Chef (e.g. `/etc/jupyterhub/**`) into the container
 - Use the NFS volume mounted to the instance for storage
-- Log all hub traffic to AWS Cloudwatch
+- Log all hub traffic to AWS Cloudwatch in a new log-group unique to this instance
 - Use a specific launch image pulled from our ECR repo
+- Publish on 8000 (NGINX expects this...)
   
 ```bash
 sudo docker service create \
