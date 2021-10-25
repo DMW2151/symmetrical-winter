@@ -16,13 +16,15 @@ There are many ways to customize a Jupyter Hub instance, at the very least, an e
   
 - Spawner Strategy: [DockerSwarmSpawner](https://github.com/jupyterhub/dockerspawner) to launch Docker Containers across a network o
   
-- Launch Image: `dmw2151/geospatial-utils` - [Here](https://hub.docker.com/r/dmw2151/geo) - Public image I've used for demonstrations before that includes the Python3.8 Standard Lib, some C dependencies for geospatial processing, and some of Python's data science stack. For this deployment, I'm treating this as an internal image that is built within the repo, deployed to ECR, and then pulled by our swarm worker containers.
+- Launch Image: `dmw2151/geospatial-utils` - [Here](https://hub.docker.com/r/dmw2151/geo) - Public image I've used for demonstrations before that includes the Python3.8 Standard Lib, some C dependencies for geospatial processing, and some of Python's data science stack. For this deployment, I'm treating this as an internal image that is built within the repo, deployed to ECR, and then pulled by our swarm worker containers. **NOTE**, `cookbooks/jupyter/files/hub/jupyterhub_config.py` is the hub configuration file, in which, one can change the analysis image to any image hosted by the user (or a public image).
 
 Please see the following links for more detail on the project:
 
 - [YouTube](https://youtu.be/OfqXgwJsspw)
 - [DevPost](https://devpost.com/software/autoscaling-jupyterhub)
 - [System Architecture](./docs/high-level-application-arch.pdf)
+
+
 ## Requirements Before Deployment
 
 ### Github Assumptions
@@ -35,7 +37,7 @@ This repo has a CI job attached to it which deploys the infrastructure for the C
 - AWS_ACCOUNT_ID
 - CHEF_SSH_VPC_CIDR -> The whitelisted CIDR range for Hub users
 
-Note that it is possible (but highly discouraged) to deploy from a local machine, the `local-exec` steps in the `terraform` pipeline are largely dependent on your environment. Deploying locally from an Ubuntu:20.04 VM would most closely replicate `hashicorp/terraform-github-actions`.
+Note that it is possible (but highly discouraged) to deploy from a local machine, Deploying locally from an Ubuntu:20.04 VM would most closely replicate `hashicorp/terraform-github-actions`.
 
 The credentialing information passed to the repository requires an IAM role with a fairly high level of privilege. If your org doesn't maintain IAM roles with write level access to AWS services in this deployment (e.g. you use SSO temp credentials)these will need to be rotated out relatively often.
 
@@ -53,7 +55,7 @@ I tried to develop everything from scratch, but a few "shortcuts" were taken, at
 
 - Excludes hardening + (a lot) of security precautions to take, some of the more restrictive hardening suggestions work against this deployment's Jupyter NB assumptions, I would need to do a significant amount of additional development to harden the ASG nodes appropriately.
 
-## TODO/Extras 
+## TODO/Extras
 
 - :white_check_mark: The build for Chef Server is slow when Terraform comes up. It would be nice to use Packer to build the Chef Server into an AMI e.g. `Ubuntu-18.04-Chef-13.1.13`, use that in Terraform, and cut `cloud init` time by 90%. Moreover, it would be nice to build the ASG nodes into `Ubuntu-18.04-Knife-xx.xx.xx` so we bring instances up faster.
 
@@ -67,7 +69,9 @@ I tried to develop everything from scratch, but a few "shortcuts" were taken, at
 
 - :x: All instance IPs should be fetched via CloudMap x Route53, all other params should be fetched via SSM. As a general rule, things that can be discovered should use service discovery!
 
+- :x: Need to be more respectful about frequent deployments. Launching the `linuxserver/swag` container autogenerates a cert. If built nightly, this will lead to going over Certbot's accepted unique certs per domain limit. To stay in their good graces I should persist these somewhere...
+
 ## What you Get
 
 - An Infra Server Running at `https://${ec2_instance_public_dns}.amazonaws.com`
-- A JupyterHub with a login panel at `https://notebooks.${domain}`
+- A JupyterHub with a login panel at `https://notebooks.${domain}/hub/login`
