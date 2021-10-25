@@ -8,7 +8,7 @@ data "template_file" "workstation-userdata" {
 
 
 resource "time_sleep" "wait_chef_server_stable_30s" {
-  depends_on = [aws_instance.chef-server]
+  depends_on      = [aws_instance.chef-server]
   create_duration = "30s"
 }
 
@@ -17,7 +17,7 @@ data "aws_ami" "ubuntu-chef-workstation" {
   most_recent = true
 
   filter {
-    name   = "name"
+    name = "name"
     values = [
       "ubuntu-*-chef-workstation-*"
     ]
@@ -75,7 +75,7 @@ resource "aws_instance" "chef-workstation" {
 
   # Depends on - Give all peripheral instances an explicit dependency on the Server
   depends_on = [
-    aws_instance.chef-server,  time_sleep.wait_chef_server_stable_30s
+    aws_instance.chef-server, time_sleep.wait_chef_server_stable_30s
   ]
 
   # Tags

@@ -8,7 +8,7 @@ data "template_file" "hub-leader-userdata" {
 
 
 resource "time_sleep" "wait_chef_workstation_stable_30s" {
-  depends_on = [aws_instance.chef-workstation]
+  depends_on      = [aws_instance.chef-workstation]
   create_duration = "30s"
 }
 

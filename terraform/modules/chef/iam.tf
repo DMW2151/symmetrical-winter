@@ -83,25 +83,46 @@ resource "aws_iam_policy" "ecr_read_only_plus" {
   name = "AmazonElasticContainerRegistryPrivateReadPlus"
 
   policy = jsonencode({
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Action": [
-                "ecr:GetAuthorizationToken",
-                "ecr:BatchCheckLayerAvailability",
-                "ecr:GetRepositoryPolicy",
-                "sts:GetServiceBearerToken",
-                "ecr:BatchGetImage",
-                "ecr:GetDownloadUrlForLayer"
-            ],
-            "Resource": "*"
-        }
+    "Version" : "2012-10-17",
+    "Statement" : [
+      {
+        "Effect" : "Allow",
+        "Action" : [
+          "ecr:GetAuthorizationToken",
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:GetRepositoryPolicy",
+          "sts:GetServiceBearerToken",
+          "ecr:BatchGetImage",
+          "ecr:GetDownloadUrlForLayer"
+        ],
+        "Resource" : "*"
+      }
     ]
- })
+  })
 
 }
 
+
+resource "aws_iam_policy" "cloudwatch_minimal_log_write" {
+
+  name = "cloudwatch_minimal_log_write"
+  policy = jsonencode({
+    "Version" : "2012-10-17",
+    "Statement" : [
+      {
+        "Sid" : "VisualEditor0",
+        "Effect" : "Allow",
+        "Action" : [
+          "logs:CreateLogStream",
+          "logs:CreateLogGroup",
+          "logs:PutLogEvents"
+        ],
+        "Resource" : "*"
+      }
+    ]
+    }
+  )
+}
 
 # Create an IAM role for The Chef Server w. SSM reader attached!
 # Resource: https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role
@@ -115,10 +136,20 @@ resource "aws_iam_role" "chef_server_profile" {
     aws_iam_policy.ssm_rw.arn,
     aws_iam_policy.acm_reader.arn,
     aws_iam_policy.ecr_read_only_plus.arn,
+    aws_iam_policy.cloudwatch_minimal_log_write.arn,
     data.aws_iam_policy.s3_full.arn,
     data.aws_iam_policy.ssm_mgmt.arn,
     data.aws_iam_policy.svc_discovery_read.arn
   ]
+}
+
+
+# [TEST]
+# Resource: https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role
+# See: https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/install-CloudWatch-Agent-commandline-fleet.html
+resource "aws_iam_role_policy_attachment" "cloudwatch_agent" {
+  role       = aws_iam_role.chef_server_profile.name
+  policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
 }
 
 resource "aws_iam_instance_profile" "chef_server_profile" {

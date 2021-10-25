@@ -96,6 +96,7 @@ end
 execute 'docker-hub-start' do
     command "
     export AWS__ACCOUNT_ID=$(aws sts get-caller-identity | jq '.Account' -r)
+    export HUB__NODE=$(cat /var/log/chef/node.log)
     export AWS__REGION=$(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | jq .region -r)
     sudo docker service create \
         --name jupyterhubserver \
@@ -104,6 +105,10 @@ execute 'docker-hub-start' do
         --network hub \
         --env-file /etc/jupyterhub/hub.env \
         --constraint 'node.role == manager' \
+        --log-driver=awslogs \
+        --log-opt awslogs-region=$AWS__REGION \
+        --log-opt awslogs-group=jupyterhub-server-$HUB__NODE \
+        --log-opt awslogs-create-group=true \
         --mount type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock \
         --mount type=bind,src=/etc/jupyterhub,dst=/srv/jupyterhub \
         --mount type=bind,src=/efs/hub,dst=/home/jovyan \

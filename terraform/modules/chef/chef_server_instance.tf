@@ -17,7 +17,7 @@ data "aws_ami" "ubuntu-chef-server" {
   most_recent = true
 
   filter {
-    name   = "name"
+    name = "name"
     values = [
       "ubuntu-*-chef-server-core-*"
     ]

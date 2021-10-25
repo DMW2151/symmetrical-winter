@@ -10,7 +10,7 @@ data "aws_ami" "ubuntu-chef-client" {
   most_recent = true
 
   filter {
-    name   = "name"
+    name = "name"
     values = [
       "ubuntu-*-chef-client-*"
     ]
@@ -85,7 +85,7 @@ resource "aws_autoscaling_group" "chef-workers" {
   # [WARN]: For large datasets this is an expensive ($) feature, the cost of 1 AZ vs 2 AZ on EFS is ~2x
   vpc_zone_identifier = [
     aws_subnet.default_subnet.id,
-    aws_subnet.default_subnet_2.id 
+    aws_subnet.default_subnet_2.id
   ]
 
   # Deps on Hub...
