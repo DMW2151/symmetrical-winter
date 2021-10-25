@@ -14,9 +14,9 @@ There are many ways to customize a Jupyter Hub instance, at the very least, an e
 
 - Auth/Oauth: DummmyAuthentication for testing; but [OAuthenticator with GitHub](https://jupyterhub.readthedocs.io/en/stable/getting-started/authenticators-users-basics.html#use-oauthenticator-to-support-oauth-with-popular-service-providers) very simple to implement.
   
-- Spawner Strategy: [DockerSwarmSpawner](https://github.com/jupyterhub/dockerspawner) to launch Docker Containers across a network o
+- Spawner Strategy: [DockerSwarmSpawner](https://github.com/jupyterhub/dockerspawner) to launch Docker Containers across a network of ec2 instances.
   
-- Launch Image: `dmw2151/geospatial-utils` - [Here](https://hub.docker.com/r/dmw2151/geo) - Public image I've used for demonstrations before that includes the Python3.8 Standard Lib, some C dependencies for geospatial processing, and some of Python's data science stack. For this deployment, I'm treating this as an internal image that is built within the repo, deployed to ECR, and then pulled by our swarm worker containers.
+- Launch Image: `dmw2151/geospatial-utils` - [Here](https://hub.docker.com/r/dmw2151/geo) - This is a public image I've used for demonstrations before. It includes the Python3.8 Standard Lib, some C dependencies for geospatial processing, and some of Python's data science stack. For this deployment, I'm treating this as an internal image that is built within the repo, deployed to ECR, and then pulled by our swarm worker containers.
 
 Please see the following links for more detail on the project:
 
@@ -70,4 +70,4 @@ I tried to develop everything from scratch, but a few "shortcuts" were taken, at
 ## What you Get
 
 - An Infra Server Running at `https://${ec2_instance_public_dns}.amazonaws.com`
-- A JupyterHub with a login panel at `https://notebooks.${domain}`
+- A JupyterHub with a login panel at `https://notebooks.${domain}/hub/login`
