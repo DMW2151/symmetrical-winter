@@ -14,9 +14,13 @@ There are many ways to customize a Jupyter Hub instance, at the very least, an e
 
 - Auth/Oauth: DummmyAuthentication for testing; but [OAuthenticator with GitHub](https://jupyterhub.readthedocs.io/en/stable/getting-started/authenticators-users-basics.html#use-oauthenticator-to-support-oauth-with-popular-service-providers) very simple to implement.
   
-- Spawner Strategy: [DockerSwarmSpawner](https://github.com/jupyterhub/dockerspawner) to launch Docker Containers across a network o
+- Spawner Strategy: [DockerSwarmSpawner](https://github.com/jupyterhub/dockerspawner) to launch Docker Containers across a network of ec2 instances.
   
+<<<<<<< HEAD
 - Launch Image: `dmw2151/geospatial-utils` - [Here](https://hub.docker.com/r/dmw2151/geo) - Public image I've used for demonstrations before that includes the Python3.8 Standard Lib, some C dependencies for geospatial processing, and some of Python's data science stack. For this deployment, I'm treating this as an internal image that is built within the repo, deployed to ECR, and then pulled by our swarm worker containers. **NOTE**, `cookbooks/jupyter/files/hub/jupyterhub_config.py` is the hub configuration file, in which, one can change the analysis image to any image hosted by the user (or a public image).
+=======
+- Launch Image: `dmw2151/geospatial-utils` - [Here](https://hub.docker.com/r/dmw2151/geo) - This is a public image I've used for demonstrations before. It includes the Python3.8 Standard Lib, some C dependencies for geospatial processing, and some of Python's data science stack. For this deployment, I'm treating this as an internal image that is built within the repo, deployed to ECR, and then pulled by our swarm worker containers.
+>>>>>>> e96bd207b5f783e748e4dce622a9b2a9676a8c2a
 
 Please see the following links for more detail on the project:
 
